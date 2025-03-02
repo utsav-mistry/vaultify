@@ -56,8 +56,19 @@ Vaultify is continuously evolving to offer even better security and usability. P
 - **Auto-Fill Integration** – Seamless password autofill for supported browsers.  
 - **Biometric Authentication** – Login via fingerprint or facial recognition (mobile).  
 
-## License  
-Vaultify is an open-source project licensed under the **MIT License**. You are free to use, modify, and distribute it under the terms of the license.  
+## License
+
+This software is licensed under the **Creative Commons Attribution-NonCommercial-NoDerivatives 4.0 International License (CC BY-NC-ND 4.0).**
+
+### What This Means:
+- **You May:** Use this software for personal or non-commercial purposes.
+- **You May NOT:** Modify, distribute, or use this software for commercial purposes.
+
+### Full License Details:
+For more information, please refer to the official license:  
+[Creative Commons Attribution-NonCommercial-NoDerivatives 4.0 International](https://creativecommons.org/licenses/by-nc-nd/4.0/)
+
+© 2025 Vaultify Inc. All rights reserved. 
 
 ## Contact & Support  
 For any queries, feedback, or support, feel free to reach out. Vaultify aims to provide a secure and seamless password management experience for all users.  
