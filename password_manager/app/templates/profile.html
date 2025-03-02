@@ -1,0 +1,281 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2 class="profile-header">
+        <!-- Profile Image or Default Icon -->
+        <div class="position-relative mx-auto">
+            {% if current_user.profile_image %}
+            <!-- Profile Image (Same Size as Fallback Icon) -->
+            <img id="profilePreviewImage" src="{{ url_for('get_profile_image', user_id=current_user.id) }}"
+                alt="Profile Picture" class="profile-img rounded-circle" style="height: 250px; width: 250px;">
+            {% else %}
+            <!-- Default Icon (Thumb Rule) -->
+            <div class="d-flex align-items-center justify-content-center text-secondary" style="font-size: 5rem;">
+                <i class="fa-regular fa-user"></i>
+            </div>
+            {% endif %}
+
+            <!-- Shield Icon (Top-Right Corner) -->
+            <span class="profile-span">
+                <i class="fas fa-shield fa-2x"></i>
+            </span>
+
+            <!-- Edit Button (Bottom-Right Corner) -->
+            <span type="button" class="edit-button" data-bs-toggle="modal" data-bs-target="#updateProfileImageModal">
+                <i class="fas fa-pencil-alt fa-2x"></i>
+            </span>
+        </div>
+
+
+    </h2>
+    <h2 class="mt-1 text-center">Hi, {{ current_user.username }}!</h2>
+
+
+    <!-- Tabs Navigation -->
+    <ul class="nav nav-tabs mt-3" id="profileTabs">
+        <li class="nav-item">
+            <a class="nav-link active" id="logs-tab" data-bs-toggle="tab" href="#logs">
+                <i class="fas fa-history"></i> Activity Logs
+            </a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link" id="info-tab" data-bs-toggle="tab" href="#info">
+                <i class="fas fa-user-edit"></i> User Info
+            </a>
+        </li>
+    </ul>
+
+    <!-- Tabs Content -->
+    <div class="tab-content mt-3">
+        <!-- Logs Tab -->
+        <div class="tab-pane fade show active " id="logs">
+            <div class="card">
+                <div class="card-body">
+                    <h4><i class="fas fa-history"></i> Activity Logs</h4>
+                    <table class="table table-bordered mt-3">
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Action</th>
+                                <th>Details</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for log in logs %}
+                            <tr>
+                                <td>{{ log.timestamp }}</td>
+                                <td>{{ log.action }}</td>
+                                <td>{{ log.details }}</td>
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td colspan="3">No logs available.</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                <small class="text-left p-3 m-2 text-danger d-flex small" style="text-align: justify;">
+                    <div class="border border-danger rounded-circle p-1 m-1"
+                        style="display: flex; height: 32px; align-content: space-between;align-items: center;justify-content: center;flex-wrap: wrap;">
+                        <i class="fa-solid fa-info mx-1 p-1 "></i>
+                    </div>
+                    Due to encryption, everytime you update a field of your saved password, the password
+                    associated with the site gets re-encrypted hence even changing the site name can show logs of
+                    changing password.
+                </small>
+            </div>
+        </div>
+        <!-- User Info Tab -->
+        <div class="tab-pane fade" id="info">
+            <div class="card p-3">
+                <div class="card-body">
+                    <h4><i class="fas fa-user-circle"></i> Your Information</h4>
+                    <p><strong>Username:</strong> {{ current_user.username }}</p>
+                    <p><strong>Email:</strong> {{ current_user.email }}</p>
+
+                    <!-- Profile Actions -->
+                    <div class="mt-4 d-flex">
+                        <a href="{{ url_for('change_user_details') }}" class="btn btn-outline-primary btn-sm ms-2">
+                            <i class="fas fa-edit"></i> Change Your Info
+                        </a>
+                        <a href="{{ url_for('delete_profile') }}" class="btn btn-outline-danger btn-sm ms-2">
+                            <i class="fas fa-user-slash"></i> Delete My Profile
+                        </a>
+                        <form method="POST" action="{{ url_for('forgot_password') }}">
+                            <input type="hidden" name="email" value="{{ current_user.email }}">
+                            <button type="submit" class="btn btn-outline-warning btn-sm ms-2">
+                                <i class="fas fa-key"></i> Reset Password
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Profile Image Update Modal -->
+<div class="modal fade" id="updateProfileImageModal" tabindex="-1" aria-labelledby="updateProfileImageModalLabel"
+    aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="updateProfileImageModalLabel">
+                    <i class="fas fa-camera"></i> Update Profile Picture
+                </h5>
+                <span data-bs-dismiss="modal" aria-label="Close" style="cursor: pointer;"><i
+                        class="fas fa-times fa-2x"></i></span>
+            </div>
+            <form action="{{ url_for('update_profile_image') }}" method="POST" enctype="multipart/form-data"
+                id="profileImageForm">
+                <div class="modal-body">
+                    <!-- Preview Section -->
+                    <div class="text-center mb-4">
+                        <div id="profilePreviewContainer" class="mx-auto" style="width: 150px; height: 150px;">
+                            {% if current_user.profile_image %}
+                            <img src="{{ url_for('get_profile_image', user_id=current_user.id) }}" alt="Profile Picture"
+                                class="rounded-circle w-100 h-100" style="object-fit: cover;" id="profilePreviewImage">
+                            {% else %}
+                            <div
+                                class="rounded-circle w-100 h-100 d-flex align-items-center justify-content-center bg-light">
+                                <i class="fa-regular fa-user fa-4x text-secondary"></i>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <!-- Hidden File Input -->
+                    <input type="file" class="d-none" id="profile_image" name="profile_image" accept="image/*">
+
+                    <!-- Action Buttons -->
+                    <div class="d-flex justify-content-center gap-2 mb-3">
+                        <button type="button" class="btn btn-outline-primary" id="btnUpload">
+                            <i class="fas fa-upload"></i> Upload
+                        </button>
+                        <button type="button" class="btn btn-outline-primary" id="btnCamera">
+                            <i class="fas fa-camera"></i> Take Photo
+                        </button>
+                        <button type="button" class="btn btn-outline-danger" id="btnRemove">
+                            <i class="fas fa-trash-alt"></i> Remove
+                        </button>
+                    </div>
+
+                    <!-- Camera Section -->
+                    <div id="cameraContainer" class="d-none">
+                        <video id="video" class="w-100 mb-2" style="max-height: 300px;"></video>
+                        <button type="button" class="btn btn-primary w-100" id="btnCapture">
+                            <i class="fas fa-camera"></i> Capture Photo
+                        </button>
+                    </div>
+
+                    <!-- Canvas for capturing photo (hidden) -->
+                    <canvas id="canvas" class="d-none"></canvas>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-outline-primary" id="btnSave">Save Changes</button>
+                </div>
+            </form>
+
+            <!-- Separate form for removing profile picture -->
+            <form action="{{ url_for('remove_profile_image') }}" method="POST" id="removeProfileForm" class="d-none">
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- JavaScript for handling profile image actions -->
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const profileForm = document.getElementById('profileImageForm');
+        const removeForm = document.getElementById('removeProfileForm');
+        const fileInput = document.getElementById('profile_image');
+        const previewContainer = document.getElementById('profilePreviewContainer');
+        const video = document.getElementById('video');
+        const canvas = document.getElementById('canvas');
+        const cameraContainer = document.getElementById('cameraContainer');
+        let stream = null;
+
+        // Upload button handler
+        document.getElementById('btnUpload').addEventListener('click', () => {
+            fileInput.click();
+        });
+
+        // File input change handler
+        fileInput.addEventListener('change', function (event) {
+            const file = event.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function (e) {
+                    updatePreview(e.target.result);
+                }
+                reader.readAsDataURL(file);
+            }
+        });
+
+        // Camera button handler
+        document.getElementById('btnCamera').addEventListener('click', async () => {
+            try {
+                stream = await navigator.mediaDevices.getUserMedia({ video: true });
+                video.srcObject = stream;
+                video.play();
+                cameraContainer.classList.remove('d-none');
+            } catch (err) {
+                alert('Error accessing camera: ' + err.message);
+            }
+        });
+
+        // Capture button handler
+        document.getElementById('btnCapture').addEventListener('click', () => {
+            const context = canvas.getContext('2d');
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            context.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+            // Convert canvas to blob and create a file
+            canvas.toBlob((blob) => {
+                const file = new File([blob], 'camera-capture.jpg', { type: 'image/jpeg' });
+                const dataTransfer = new DataTransfer();
+                dataTransfer.items.add(file);
+                fileInput.files = dataTransfer.files;
+
+                // Update preview and cleanup
+                updatePreview(canvas.toDataURL('image/jpeg'));
+                stopCamera();
+            }, 'image/jpeg');
+        });
+
+        // Remove button handler
+        document.getElementById('btnRemove').addEventListener('click', () => {
+            if (confirm('Are you sure you want to remove your profile picture?')) {
+                removeForm.submit();
+            }
+        });
+
+        // Helper function to update preview
+        function updatePreview(src) {
+            previewContainer.innerHTML = `
+            <img src="${src}" 
+                 alt="Profile Picture" 
+                 class="rounded-circle w-100 h-100" 
+                 style="object-fit: cover;">`;
+        }
+
+        // Helper function to stop camera
+        function stopCamera() {
+            if (stream) {
+                stream.getTracks().forEach(track => track.stop());
+                stream = null;
+            }
+            cameraContainer.classList.add('d-none');
+        }
+
+        // Cleanup when modal is closed
+        document.getElementById('updateProfileImageModal').addEventListener('hidden.bs.modal', () => {
+            stopCamera();
+        });
+    });
+</script>
+{% endblock %}

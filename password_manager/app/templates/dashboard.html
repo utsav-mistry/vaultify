@@ -1,0 +1,329 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<h2 class="text-center mb-4">Dashboard</h2>
+
+<!-- Search Bar -->
+<div class="mb-4 d-flex justify-content-center">
+    <div class="w-50">
+        <input type="text" id="searchBar" class="form-control" placeholder="Search saved passwords"
+            aria-label="Search saved passwords">
+        <ul id="suggestionsBox" class="list-group" style="z-index: 10; display: none; width: 100% !important;"></ul>
+    </div>
+</div>
+
+<div>
+
+    <!-- Add Password Button -->
+    <div class="mb-3">
+        <h3>Saved Passwords</h3>
+        <div class="mb-3 text-end">
+            <a href="{{ url_for('add_password') }}" class="btn btn-outline-success btn-sm">
+                <i class="fas fa-plus-circle"></i> Add Password
+            </a>
+        </div>
+    </div>
+    <!-- Password List Table -->
+    <div class="table-responsive px-5">
+        <table class="table table-bordered">
+            <thead class="thead-dark">
+                <tr>
+                    <th>Website</th>
+                    <th>Username</th>
+                    <th>Password</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody id="passwordList">
+                {% for password in passwords %}
+                <tr>
+                    <td>{{ password.website }}</td>
+                    <td>{{ password.username }}</td>
+                    <td class="input-group">
+
+                        <input type="password" class="form-control form-control-sm" style="
+                                background-color: transparent !important;
+                                border: none;" value="{{ password.decrypted_password }}" readonly>
+
+                        <span class="toggle-password input-group-text btn-gray" type="button"
+                            style="border-radius: 0.25rem;">
+                            <i class="fas fa-eye"></i>
+                        </span>
+                    </td>
+
+                    <td>
+                        <div class="d-flex flex-wrap gap-2">
+                            <!-- Edit Button -->
+                            <a href="{{ url_for('edit_password', password_id=password.id) }}"
+                                class="btn btn-outline-success btn-sm">
+                                <i class="fas  fa-edit"></i> Edit
+                            </a>
+
+                            <!-- Delete Button -->
+                            <form action="{{ url_for('delete_password', password_id=password.id) }}" method="POST"
+                                style="display:inline;" autocomplete="off">
+                                <button type="submit" class="btn btn-outline-danger btn-sm">
+                                    <i class="fas fa-trash-alt"></i> Delete
+                                </button>
+                            </form>
+                        </div>
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="4" class="text-center">No passwords found</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        <!-- No Results Message -->
+        <div id="noResultsMessage" class="text-center mt-3" style="display: none;">
+            No passwords match your search.
+        </div>
+    </div>
+</div>
+
+<script>
+    const searchBar = document.getElementById('searchBar');
+    const passwordList = document.getElementById('passwordList');
+    const noResultsMessage = document.getElementById('noResultsMessage');
+
+    // Search bar functionality
+    searchBar.addEventListener('input', function () {
+        const query = searchBar.value.toLowerCase();
+        const rows = passwordList.getElementsByTagName('tr');
+        let hasResults = false;
+
+        for (let row of rows) {
+            const website = row.cells[0].textContent.toLowerCase();
+            if (website.includes(query)) {
+                row.style.display = '';
+                hasResults = true; // Match found
+            } else {
+                row.style.display = 'none'; // No match
+            }
+        }
+
+        // Toggle the "No results found" message
+        if (hasResults) {
+            noResultsMessage.style.display = 'none';
+        } else {
+            noResultsMessage.style.display = 'block';
+        }
+    });
+
+    // Toggle password visibility
+    document.querySelectorAll('.toggle-password').forEach(button => {
+        button.addEventListener('click', function () {
+            const input = this.previousElementSibling;
+            const icon = this.querySelector('i');
+            if (input.type === 'password') {
+                input.type = 'text';
+                icon.classList.remove('fa-eye');
+                icon.classList.add('fa-eye-slash');
+            } else {
+                input.type = 'password';
+                icon.classList.remove('fa-eye-slash');
+                icon.classList.add('fa-eye');
+            }
+        });
+    });
+    // Collect all website names from the table
+    let websiteNames = [];
+    document.querySelectorAll("#passwordList tr td:first-child").forEach(cell => {
+        websiteNames.push(cell.textContent.trim());
+    });
+
+    const suggestionsBox = document.getElementById("suggestionsBox");
+
+    // Function to filter suggestions
+    searchBar.addEventListener("input", function () {
+        const query = searchBar.value.toLowerCase().trim();
+        suggestionsBox.innerHTML = "";
+
+        if (query.length === 0) {
+            hideSuggestions();
+            return;
+        }
+
+        const filteredSuggestions = websiteNames.filter(name => name.toLowerCase().includes(query));
+
+        if (filteredSuggestions.length > 0) {
+            filteredSuggestions.forEach(suggestion => {
+                const li = document.createElement("li");
+                li.classList.add("list-group-item", "list-group-item-action", "d-flex", "justify-content-between", "align-items-center", "m-0", "p-2");
+
+                // Suggestion Text
+                const textSpan = document.createElement("span");
+                textSpan.textContent = suggestion;
+                textSpan.classList.add("flex-grow-1");
+
+                // Arrow-up Icon
+                const icon = document.createElement("i");
+                icon.classList.add("fas", "fa-arrow-up", "text-muted");
+
+                // Click Event
+                li.addEventListener("click", function () {
+                    searchBar.value = suggestion;
+                    hideSuggestions();
+                    searchBar.dispatchEvent(new Event("input")); // Trigger search
+                });
+
+                li.appendChild(textSpan);
+                li.appendChild(icon);
+                suggestionsBox.appendChild(li);
+            });
+
+            showSuggestions();
+        } else {
+            hideSuggestions();
+        }
+    });
+
+    // Function to Show Suggestions with Animation
+
+    searchBar.addEventListener("input", function () {
+        const query = searchBar.value;
+        suggestionsBox.innerHTML = "";
+
+        if (query.length === 0) {
+            hideSuggestions();
+            return;
+        }
+
+        const filteredSuggestions = websiteNames.filter(name => name.includes(query));
+
+        if (filteredSuggestions.length > 0) {
+            suggestionsBox.innerHTML = ""; // Clear previous suggestions
+
+            filteredSuggestions.forEach(suggestion => {
+                const li = document.createElement("li");
+                li.classList.add(
+                    "list-group-item",
+                    "list-group-item-action",
+                    "d-flex",
+                    "justify-content-between",
+                    "align-items-center",
+                    "m-0",
+                    "p-2"
+                );
+
+                // Suggestion Text
+                const textSpan = document.createElement("span");
+                textSpan.textContent = suggestion;
+                textSpan.classList.add("flex-grow-1");
+
+                // Arrow-up Icon
+                const icon = document.createElement("i");
+                icon.classList.add("fas", "fa-arrow-up", "text-muted");
+
+                // Click Event
+                li.addEventListener("click", function () {
+                    searchBar.value = suggestion;
+                    hideSuggestions();
+                    searchBar.dispatchEvent(new Event("input")); // Trigger search
+                });
+
+                li.appendChild(textSpan);
+                li.appendChild(icon);
+                suggestionsBox.appendChild(li);
+            });
+
+            suggestionsBox.style.display = "block";
+            suggestionsBox.classList.remove("hide");
+            suggestionsBox.classList.add("show");
+        } else {
+            hideSuggestions();
+        }
+    });
+
+    // Function to Hide Suggestions with Smooth Animation
+    function hideSuggestions() {
+        if (suggestionsBox.classList.contains("show")) {
+            suggestionsBox.classList.remove("show");
+            suggestionsBox.classList.add("hide");
+
+            // Wait for animation to finish before hiding
+            setTimeout(() => {
+                if (suggestionsBox.classList.contains("hide")) {
+                    suggestionsBox.style.display = "none";
+                }
+            }, 300); // Matches animation duration
+        }
+    }
+
+    // Hide suggestions when clicking outside
+    document.addEventListener("click", function (event) {
+        if (!searchBar.contains(event.target) && !suggestionsBox.contains(event.target)) {
+            hideSuggestions();
+        }
+    });
+
+    // Function to create and append suggestions
+    function showSuggestions(filteredSuggestions) {
+        suggestionsBox.innerHTML = ""; // Clear previous suggestions
+
+        filteredSuggestions.forEach(suggestion => {
+            const li = document.createElement("li");
+            li.classList.add("list-group-item", "list-group-item-action", "d-flex", "justify-content-between", "align-items-center", "m-0", "p-2");
+
+            // Suggestion Text
+            const textSpan = document.createElement("span");
+            textSpan.textContent = suggestion;
+            textSpan.classList.add("flex-grow-1");
+
+            // Arrow-up Icon
+            const icon = document.createElement("i");
+            icon.classList.add("fas", "fa-arrow-up", "text-muted");
+
+            // Click event to fill input and hide suggestions
+            li.addEventListener("click", function () {
+                searchBar.value = suggestion; // Fill search bar
+                hideSuggestions(); // Hide suggestions with animation
+                searchBar.dispatchEvent(new Event("input")); // Trigger search
+            });
+
+            li.appendChild(textSpan);
+            li.appendChild(icon);
+            suggestionsBox.appendChild(li);
+        });
+
+        suggestionsBox.classList.remove("hide");
+        suggestionsBox.classList.add("show");
+        suggestionsBox.style.display = "block"; // Ensure it's visible
+    }
+    let selectedIndex = -1;
+
+    searchBar.addEventListener("keydown", function (event) {
+        const items = suggestionsBox.querySelectorAll("li");
+        if (items.length === 0) return;
+
+        if (event.key === "ArrowDown") {
+            event.preventDefault();
+            selectedIndex = (selectedIndex + 1) % items.length;
+        } else if (event.key === "ArrowUp") {
+            event.preventDefault();
+            selectedIndex = (selectedIndex - 1 + items.length) % items.length;
+        } else if (event.key === "Enter") {
+            event.preventDefault();
+            if (selectedIndex > -1) {
+                items[selectedIndex].click();
+            }
+        } else if(event.key === 'Esc'){
+            event.preventDefault();
+            suggestionsBox.classList.remove("show");
+            suggestionsBox.classList.add("hide");
+        }
+
+        // Remove previous highlight
+        items.forEach(item => item.classList.remove("active-suggestion"));
+
+        // Add highlight effect to the selected item
+        if (selectedIndex > -1) {
+            items[selectedIndex].classList.add("active-suggestion");
+        }
+    });
+
+</script>
+
+{% endblock %}

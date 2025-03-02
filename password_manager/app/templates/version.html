@@ -1,0 +1,246 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center">
+        <h2 class="m-2 p-1">Vaultify Version History</h2>
+        <button id="toggleAll" class="btn btn-outline-primary">
+            <i class="fas fa-plus"></i> Expand All
+        </button>
+    </div>
+    <div class="accordion" id="versionAccordion">
+
+        <div class="accordion-item">
+            <h2 class="accordion-header" id="heading10">
+                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
+                    data-bs-target="#collapse11" aria-expanded="false" aria-controls="collapse11">
+                    Vaultify v1.10.0 - Profile image update <small class="version-small">(Current Version)</small>
+                </button>
+            </h2>
+            <div id="collapse11" class="accordion-collapse collapse" aria-labelledby="heading11">
+                <div class="accordion-body m-1">
+                    Enabled users to update their account profile picture adding a pinch of personalization and customization.
+                    The images are stored in Database.
+                </div>
+            </div>
+        </div>
+        <div class="accordion-item">
+            <h2 class="accordion-header" id="heading10">
+                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
+                    data-bs-target="#collapse10" aria-expanded="false" aria-controls="collapse10">
+                    Vaultify v1.9.0 - User Info Updates
+                </button>
+            </h2>
+            <div id="collapse10" class="accordion-collapse collapse" aria-labelledby="heading10">
+                <div class="accordion-body m-1">
+                    Enabled users to update their account information, enhancing personalization and flexibility.
+                </div>
+            </div>
+        </div>
+
+        <div class="accordion-item">
+            <h2 class="accordion-header" id="heading9">
+                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
+                    data-bs-target="#collapse9" aria-expanded="false" aria-controls="collapse9">
+                    Vaultify v1.8.0 - Account Information Display
+                </button>
+            </h2>
+            <div id="collapse9" class="accordion-collapse collapse" aria-labelledby="heading9">
+                <div class="accordion-body m-1">
+                    Added a feature to display user account information for better transparency and accessibility.
+                </div>
+            </div>
+        </div>
+
+        <div class="accordion-item">
+            <h2 class="accordion-header" id="heading8">
+                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
+                    data-bs-target="#collapse8" aria-expanded="false" aria-controls="collapse8">
+                    Vaultify v1.7.0 - Database Migration to MySQL
+                </button>
+            </h2>
+            <div id="collapse8" class="accordion-collapse collapse" aria-labelledby="heading8">
+                <div class="accordion-body m-1">
+                    Upgraded the database from SQLite to MySQL for improved performance and scalability.
+                </div>
+            </div>
+        </div>
+
+        <!-- Parent Accordion for v1.6.x -->
+        <div class="accordion-item">
+            <h2 class="accordion-header" id="heading6">
+                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
+                    data-bs-target="#collapse6" aria-expanded="false" aria-controls="collapse6">
+                    Vaultify v1.6.x - OTP & Email Enhancements
+                </button>
+            </h2>
+            <div id="collapse6" class="accordion-collapse collapse" aria-labelledby="heading6">
+                <div class="accordion-body m-1">
+
+                    <!-- Sub-Accordion for v1.6.x -->
+                    <div class="accordion" id="subAccordion1_6">
+                        <div class="accordion-item">
+                            <h2 class="accordion-header" id="subHeading1">
+                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
+                                    data-bs-target="#subCollapse1" aria-expanded="false" aria-controls="subCollapse1">
+                                    Vaultify v1.6.2 - Email Configuration for Forgot Password
+                                </button>
+                            </h2>
+                            <div id="subCollapse1" class="accordion-collapse collapse" aria-labelledby="subHeading1">
+                                <div class="accordion-body m-1">
+                                    Configured email settings for OTP-based password recovery.
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="accordion-item">
+                            <h2 class="accordion-header" id="subHeading2">
+                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
+                                    data-bs-target="#subCollapse2" aria-expanded="false" aria-controls="subCollapse2">
+                                    Vaultify v1.6.1 - Email Configuration for New Registrations
+                                </button>
+                            </h2>
+                            <div id="subCollapse2" class="accordion-collapse collapse" aria-labelledby="subHeading2">
+                                <div class="accordion-body m-1">
+                                    Configured email settings for sending OTPs during new user registration.
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="accordion-item">
+                            <h2 class="accordion-header" id="subHeading3">
+                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
+                                    data-bs-target="#subCollapse3" aria-expanded="false" aria-controls="subCollapse3">
+                                    Vaultify v1.6.0 - OTP Handling for User Requests
+                                </button>
+                            </h2>
+                            <div id="subCollapse3" class="accordion-collapse collapse" aria-labelledby="subHeading3">
+                                <div class="accordion-body m-1">
+                                    Implemented OTP generation and validation for secure user authentication.
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- End of Sub-Accordion -->
+
+                </div>
+            </div>
+        </div>
+        <!-- End of Parent Accordion for v1.6.x -->
+
+        <div class="accordion-item">
+            <h2 class="accordion-header" id="heading5">
+                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
+                    data-bs-target="#collapse5" aria-expanded="false" aria-controls="collapse5">
+                    Vaultify v1.5.0 - Search Bar Suggestions
+                </button>
+            </h2>
+            <div id="collapse5" class="accordion-collapse collapse" aria-labelledby="heading5">
+                <div class="accordion-body m-1">
+                    Implemented real-time suggestions in the search bar for a smoother user experience.
+                </div>
+            </div>
+        </div>
+
+        <div class="accordion-item">
+            <h2 class="accordion-header" id="heading4">
+                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
+                    data-bs-target="#collapse4" aria-expanded="false" aria-controls="collapse4">
+                    Vaultify v1.4.0 - Night Mode Feature
+                </button>
+            </h2>
+            <div id="collapse4" class="accordion-collapse collapse" aria-labelledby="heading4">
+                <div class="accordion-body m-1">
+                    Added a night mode option to improve user experience in low-light conditions.
+                </div>
+            </div>
+        </div>
+        <div class="accordion-item">
+            <h2 class="accordion-header" id="heading3">
+                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
+                    data-bs-target="#collapse3" aria-expanded="false" aria-controls="collapse3">
+                    Vaultify v1.3.0 - Email Integration <small class="version-small">(prototype release only)</small>
+                </button>
+            </h2>
+            <div id="collapse3" class="accordion-collapse collapse" aria-labelledby="heading3">
+                <div class="accordion-body m-1">
+                    The foundation for email functionality was established, focusing on configuring the email server and
+                    ensuring secure
+                    communication. Extensive testing was conducted to evaluate deliverability, latency, and system
+                    compatibility, laying the
+                    groundwork for future authentication and notification features in v1.6.x.
+                </div>
+            </div>
+        </div>
+
+        <div class="accordion-item">
+            <h2 class="accordion-header" id="heading2">
+                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
+                    data-bs-target="#collapse2" aria-expanded="false" aria-controls="collapse2">
+                    Vaultify v1.2.0 - Password Search
+                </button>
+            </h2>
+            <div id="collapse2" class="accordion-collapse collapse" aria-labelledby="heading2">
+                <div class="accordion-body m-1">
+                    Added the ability to search for saved passwords efficiently.
+                </div>
+            </div>
+        </div>
+
+        <div class="accordion-item">
+            <h2 class="accordion-header" id="heading1_1">
+                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
+                    data-bs-target="#collapse1_1" aria-expanded="false" aria-controls="collapse1_1">
+                    Vaultify v1.1.0 - Password Removal Feature
+                </button>
+            </h2>
+            <div id="collapse1_1" class="accordion-collapse collapse" aria-labelledby="heading1_1">
+                <div class="accordion-body m-1">
+                    Added the ability to remove saved passwords securely.
+                </div>
+            </div>
+        </div>
+
+        <div class="accordion-item">
+            <h2 class="accordion-header" id="heading1_0">
+                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
+                    data-bs-target="#collapse1_0" aria-expanded="false" aria-controls="collapse1_0">
+                    Vaultify v1.0.0 - Initial Release
+                </button>
+            </h2>
+            <div id="collapse1_0" class="accordion-collapse collapse" aria-labelledby="heading1_0">
+                <div class="accordion-body m-1">
+                    Basic password management with SQLite database support.
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        const toggleAllButton = document.getElementById("toggleAll");
+        const accordionButtons = document.querySelectorAll(".accordion-button");
+
+        toggleAllButton.addEventListener("click", function () {
+            const isCollapsed = toggleAllButton.textContent.includes("Expand");
+
+            accordionButtons.forEach(button => {
+                const targetCollapse = document.querySelector(button.dataset.bsTarget);
+                const isExpanded = button.getAttribute("aria-expanded") === "true";
+
+                if (isCollapsed && !isExpanded) {
+                    button.click(); // Expand if not expanded
+                } else if (!isCollapsed && isExpanded) {
+                    button.click(); // Collapse if expanded
+                }
+            });
+
+            toggleAllButton.innerHTML = isCollapsed
+                ? '<i class="fas fa-minus"></i> Collapse All'
+                : '<i class="fas fa-plus"></i> Expand All';
+        });
+    });
+</script>
+
+{% endblock %}

@@ -1,0 +1,158 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container mt-5">
+    <style>
+        p{
+            text-align: justify;
+        }
+    </style>
+    <!-- Page Header -->
+    <h1 class="text-center display-4 mb-4">Why Choose Our Password Manager?</h1>
+    <p class="lead text-center mb-5">
+        Discover the advanced features and cutting-edge security that set us apart.
+    </p>
+
+    <!-- Features Section -->
+    <div class="row mb-5">
+        <!-- Feature 1: Advanced Encryption -->
+        <div class="col-md-4 mb-4">
+            <div class="card shadow-sm border-0">
+                <div class="card-body">
+                    <div class="card-body-in"><i class="fas fa-lock text-success" style="font-size: 48px; margin-right: 15px;"></i>
+                        <h3>Advanced Encryption</h3>
+                    </div>
+                    <hr>
+                    <p>
+                        Your passwords are encrypted using AES-256, the gold standard in encryption technology. This
+                        ensures
+                        that your data is accessible only to you, even in the unlikely event of a breach.
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Feature 2: Secure Hashing -->
+        <div class="col-md-4 mb-4">
+            <div class="card shadow-sm border-0">
+                <div class="card-body">
+                    <div class="card-body-in"><i class="fas fa-key text-success"
+                            style="font-size: 48px; margin-right: 15px;"></i>
+                        <h3>Secure Hashing</h3>
+                    </div>
+                    <hr>
+                    <p>
+                        Passwords are hashed using bcrypt, a hashing algorithm renowned for its ability to resist brute
+                        force attacks. Bcrypt incorporates a salt to protect against rainbow table attacks and allows
+                        for adjustable work factors.
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Feature 3: Easy Access and Management -->
+        <div class="col-md-4 mb-4">
+            <div class="card shadow-sm border-0">
+                <div class="card-body">
+
+                    <div class="card-body-in"><i class="fas fa-cogs text-success"
+                            style="font-size: 48px; margin-right: 15px;"></i>
+                        <h3>Management</h3>
+                    </div>
+                    <hr>
+                    <p>
+                        Manage and access your passwords seamlessly with our intuitive interface. Whether you're on
+                        desktop or mobile, you can quickly retrieve and organize your stored passwords in a few clicks.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    <div class="row mb-5">
+        <!-- Feature 1: Advanced Encryption -->
+        <div class="col-md-4 mb-4">
+            <div class="card shadow-sm border-0">
+                <div class="card-body">
+                    <div class="card-body-in"><i class="fas fa-sync-alt text-success" style="font-size: 48px; margin-right: 15px;"></i>
+                     <h3>   Seamless Synchronization </h3></div>
+                    <hr>
+                    <p>
+                        Access your passwords across all devices effortlessly, without ever compromising on security.
+                        Our
+                        robust synchronization technology ensures that your data stays up-to-date in real time, whether
+                        you're on your phone, tablet, or desktop. With end-to-end encryption, your passwords remain
+                        protected while being seamlessly synchronized, giving you the freedom to securely access your
+                        information anywhere, anytime.
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4 mb-4">
+            <div class="card shadow-sm border-0">
+                <div class="card-body">
+                    <div class="card-body-in"><i class="fas fa-user-shield text-success" style="font-size: 48px; margin-right: 15px;"></i>
+                     <h3>User-Centric Design</h3></div>
+                    <hr>
+                    <p>
+                        Experience a design that puts you first. Our interface is crafted to make password management a
+                        breeze, whether you're adding new accounts, updating existing ones, or organizing your saved
+                        passwords. With intuitive navigation, clear visuals, and helpful tips, even the most complex
+                        tasks
+                        are simplified. Our focus on usability ensures that managing your digital security feels
+                        effortless
+                        and stress-free.
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4 mb-4">
+            <div class="card shadow-sm border-0">
+                <div class="card-body">
+                    <div class="card-body-in"> <i class="fas fa-search text-success" style="font-size: 48px; margin-right: 15px;"></i>
+                       <h3>Easy Access</h3></div>
+                    <hr>
+                    <p>
+                        Easily search through your saved passwords with our efficient and user-friendly search
+                        functionality. By leveraging the power of a Binary Search Tree (BST), we ensure that your
+                        password
+                        retrieval process is not only fast but also highly optimized. BST allows us to store your
+                        passwords
+                        in a structured way, making it possible to search for any password in logarithmic time, even
+                        with a
+                        large dataset.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Why It's the Best -->
+    <div class="mb-5">
+        <h2 class="text-center mb-4"><i class="fas fa-thumbs-up text-primary"></i> Why the Service Stands Out</h2>
+        <ul class="list-group list-group-flush">
+            <li class="list-group-item">
+                <strong>Unparalleled Security:</strong> Our combination of AES encryption and bcrypt hashing ensures
+                your data is safe against modern threats.
+            </li>
+            <li class="list-group-item">
+                <strong>Real-Time Search:</strong> Quickly find passwords with efficient search functionality.
+            </li>
+            <li class="list-group-item">
+                <strong>Customizable Dark Mode:</strong> Enjoy a sleek, modern UI that adapts to your preferences,
+                including a custom dark mode.
+            </li>
+            <li class="list-group-item">
+                <strong>Performance Optimized:</strong> Built with efficient algorithms to handle large datasets
+                seamlessly.
+            </li>
+        </ul>
+    </div>
+    <div class="text-center mb-5">
+        <a href="{{ url_for('dashboard') }}" class="btn btn-outline-secondary btn-sn">Return to Dashboard</a>
+    </div>
+</div>
+{% endblock %}
