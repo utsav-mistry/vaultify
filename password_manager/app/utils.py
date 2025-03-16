@@ -182,7 +182,7 @@ def send_otp_email(user_email, otp):
                 </div>
                 <p>This code is valid for the next 5 minutes. If you did not request this code, please disregard this email.</p>
 
-                <p>If you need assistance or have any questions, feel free to contact us at <a href="auth.vaultify@gmail.com">auth.vaultify@gmail.com</a>.</p>
+                <p>If you need assistance or have any questions, feel free to contact us at <a href="mailto:contact.vaultify@gmail.com">contact.vaultify@gmail.com</a>.</p>
 
                 <p style="text-align:left;">Best regards,<br>The Vaultify Team</p>
 
