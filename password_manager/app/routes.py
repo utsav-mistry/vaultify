@@ -1,16 +1,17 @@
-from flask import render_template, redirect, url_for, flash, request, session, send_file
+from flask import render_template, redirect, url_for, flash, request, session, send_file,make_response
 from app import app, db, bcrypt
 from app.models import User, Password
-from app.utils import generate_otp, send_otp_email
 from app.forms import RegistrationForm, LoginForm, PasswordForm
 from flask_login import login_user, current_user, logout_user, login_required
-from app.utils import generate_aes_key , aes_encrypt, aes_decrypt
+from app.utils import generate_aes_key , aes_encrypt, aes_decrypt, generate_otp, send_otp_email
 from datetime import datetime, timedelta
 from sqlalchemy import text, exc
 from PIL import Image
 import io
 from io import BytesIO
-# OTP expiration time (e.g., 5 minutes)
+from reportlab.lib.pagesizes import letter
+from reportlab.platypus import SimpleDocTemplate, Table, TableStyle
+from reportlab.lib import colors
 OTP_EXPIRATION_TIME = timedelta(minutes=5)
 
 
@@ -131,7 +132,7 @@ def add_password():
     form = PasswordForm()
     if form.validate_on_submit():
         encrypted_password = aes_encrypt(current_user.aes_key, form.password.data)
-        password_entry = Password(website=form.website.data,  # Store the website in plaintext
+        password_entry = Password(website=form.website.data,  
                                   username=form.username.data,
                                   encrypted_password=encrypted_password,
                                   user_id=current_user.id)
@@ -522,3 +523,235 @@ def get_profile_image(user_id):
         return send_file(BytesIO(user.profile_image), mimetype='image/jpeg')
     
     return '', 404
+
+
+
+
+
+#  new feature 1.10.1
+from flask import render_template, request, redirect, url_for, flash, jsonify
+from flask_login import login_required, current_user
+from werkzeug.utils import secure_filename
+import pandas as pd
+
+def allowed_file(filename):
+    ALLOWED_EXTENSIONS = {'csv', 'xls', 'xlsx', 'json'}
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
+@app.route("/import_password", methods=['GET', 'POST'])
+@login_required
+def import_passwords():
+    if request.method == 'POST':
+        # Validate required fields
+        if 'file' not in request.files or \
+           not request.form.get('website_column') or \
+           not request.form.get('username_column') or \
+           not request.form.get('password_column'):
+            return jsonify({"error": "Please map all required columns"}), 400
+
+        file = request.files['file']
+        if file.filename == '':
+            return jsonify({"error": "No file selected"}), 400
+
+        if not allowed_file(file.filename):
+            return jsonify({"error": "Allowed formats: CSV, Excel, JSON"}), 400
+
+        try:
+            # Read file based on extension
+            filename = secure_filename(file.filename)
+            file_ext = filename.rsplit('.', 1)[1].lower()
+            
+            if file_ext == 'csv':
+                df = pd.read_csv(file)
+            elif file_ext in ['xls', 'xlsx']:
+                df = pd.read_excel(file)
+            elif file_ext == 'json':
+                df = pd.read_json(file)
+            else:
+                return jsonify({"error": "Unsupported file format"}), 400
+
+            # Get user-selected columns
+            website_col = request.form['website_column']
+            username_col = request.form['username_column']
+            password_col = request.form['password_column']
+
+            # Validate columns exist in file
+            missing_cols = [
+                col for col in [website_col, username_col, password_col] 
+                if col not in df.columns
+            ]
+            if missing_cols:
+                return jsonify({"error": f"Missing columns: {', '.join(missing_cols)}"}), 400
+
+            # Process data
+            new_entries = []
+            for _, row in df.iterrows():
+                password_entry = Password(
+                    website=str(row[website_col]) if pd.notna(row[website_col]) else "Unknown",
+                    username=str(row[username_col]),
+                    encrypted_password=aes_encrypt(current_user.aes_key, str(row[password_col])),
+                    user_id=current_user.id
+                )
+                new_entries.append(password_entry)
+
+            db.session.bulk_save_objects(new_entries)
+            db.session.commit()
+            
+            flash(f"Successfully imported {len(new_entries)} passwords", "success")
+            return redirect(url_for('dashboard'))
+
+        except Exception as e:
+            db.session.rollback()
+            return jsonify({"error": f"Import failed: {str(e)}"}), 500
+
+    return render_template('import_password.html')
+
+@app.route('/process_file', methods=['POST'])
+@login_required
+def process_file():
+    if 'file' not in request.files:
+        return jsonify({"error": "No file uploaded"}), 400
+        
+    file = request.files['file']
+    if file.filename == '':
+        return jsonify({"error": "No file selected"}), 400
+
+    try:
+        filename = secure_filename(file.filename)
+        file_ext = filename.rsplit('.', 1)[1].lower()
+
+        if file_ext == 'csv':
+            df = pd.read_csv(file)
+        elif file_ext in ['xls', 'xlsx']:
+            df = pd.read_excel(file)
+        elif file_ext == 'json':
+            df = pd.read_json(file)
+        else:
+            return jsonify({"error": "Unsupported file format"}), 400
+
+        return jsonify({
+            "columns": df.columns.tolist(),
+            "preview": df.head(3).to_dict(orient='records')
+        })
+
+    except Exception as e:
+        return jsonify({"error": f"File processing error: {str(e)}"}), 400
+
+@app.route('/export_passwords')
+@login_required
+def export_passwords():
+    try:
+        # Get request parameters
+        file_format = request.args.get('format', 'csv').lower()
+        filename = request.args.get('filename', 'passwords-vaultify').strip()
+        
+        # Sanitize filename
+        filename = "".join(c for c in filename if c.isalnum() or c in ('-', '_')) or 'passwords-vaultify'
+        
+        # Get current user's passwords
+        passwords = Password.query.filter_by(user_id=current_user.id).all()
+        
+        # Prepare data with decrypted passwords
+        data = []
+        for p in passwords:
+            try:
+                # Decrypt the password using AES
+                decrypted_pw = aes_decrypt(
+                    current_user.aes_key,
+                    p.encrypted_password  # Use encrypted_password field
+                ).decode('utf-8')  # Convert bytes to string
+            except Exception as decryption_error:
+                app.logger.error(f"Decryption error for entry {p.id}: {str(decryption_error)}")
+                decrypted_pw = "DECRYPTION_ERROR"
+            
+            data.append({
+                'website': p.website,
+                'username': p.username,
+                'password': decrypted_pw  # Use decrypted value
+            })
+
+        df = pd.DataFrame(data)
+
+        # Validate format
+        valid_formats = ['csv', 'xlsx', 'xls', 'json', 'pdf']
+        if file_format not in valid_formats:
+            return jsonify({'error': 'Invalid file format'}), 400
+
+        # Create in-memory file buffer
+        output = BytesIO()
+        
+        # Generate file based on format
+        if file_format == 'csv':
+            df.to_csv(output, index=False)
+            mimetype = 'text/csv'
+            
+        elif file_format == 'xlsx':
+            with pd.ExcelWriter(output, engine='openpyxl') as writer:
+                df.to_excel(writer, index=False, sheet_name='Passwords')
+            mimetype = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+            
+        elif file_format == 'xls':
+            try:
+                # Try using openpyxl as fallback if xlwt fails
+                try:
+                    with pd.ExcelWriter(output, engine='xlwt') as writer:
+                        df.to_excel(writer, index=False, sheet_name='Passwords')
+                except:
+                    with pd.ExcelWriter(output, engine='openpyxl') as writer:
+                        df.to_excel(writer, index=False, sheet_name='Passwords')
+                mimetype = 'application/vnd.ms-excel'
+            except Exception as e:
+                app.logger.error(f"Excel export error: {str(e)}")
+                return jsonify({
+                    'error': 'Excel export failed. Please install dependencies: pip install xlwt openpyxl'
+                }), 500
+            
+        elif file_format == 'json':
+            output.write(df.to_json(orient='records').encode())
+            mimetype = 'application/json'
+            
+        elif file_format == 'pdf':
+            doc = SimpleDocTemplate(output, pagesize=letter)
+            elements = []
+            
+            # Create table data
+            table_data = [['Website', 'Username', 'Password']]
+            for _, row in df.iterrows():
+                table_data.append([
+                    row['website'],
+                    row['username'],
+                    row['password']
+                ])
+            
+            # Create table with styling
+            table = Table(table_data)
+            style = TableStyle([
+                ('BACKGROUND', (0,0), (-1,0), colors.HexColor('#343a40')),
+                ('TEXTCOLOR', (0,0), (-1,0), colors.white),
+                ('ALIGN', (0,0), (-1,-1), 'LEFT'),
+                ('FONTNAME', (0,0), (-1,0), 'Helvetica-Bold'),
+                ('FONTSIZE', (0,0), (-1,0), 10),
+                ('BOTTOMPADDING', (0,0), (-1,0), 12),
+                ('BACKGROUND', (0,1), (-1,-1), colors.HexColor('#f8f9fa')),
+                ('GRID', (0,0), (-1,-1), 1, colors.HexColor('#dee2e6')),
+                ('WORDWRAP', (0,0), (-1,-1), 'CJK')
+            ])
+            table.setStyle(style)
+            elements.append(table)
+            doc.build(elements)
+            mimetype = 'application/pdf'
+
+        # Prepare response
+        output.seek(0)
+        response = make_response(output.read())
+        response.headers['Content-Type'] = mimetype
+        response.headers['Content-Disposition'] = \
+            f'attachment; filename="{filename}.{file_format}"; filename*=UTF-8\'\'{filename}.{file_format}'
+        
+        return response
+
+    except Exception as e:
+        app.logger.error(f'Export error: {str(e)}')
+        return (
+            'error Failed to generate export file. Please try again.'
+        ), 500
