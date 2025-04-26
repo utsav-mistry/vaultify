@@ -1,19 +1,29 @@
-from flask import render_template, redirect, url_for, flash, request, session, send_file,make_response
+from flask import render_template, redirect, url_for, flash, request, session, send_file, make_response, jsonify
+from flask_login import login_user, current_user, logout_user, login_required
+from werkzeug.utils import secure_filename
+from werkzeug.exceptions import BadRequest
 from app import app, db, bcrypt
 from app.models import User, Password
 from app.forms import RegistrationForm, LoginForm, PasswordForm
-from flask_login import login_user, current_user, logout_user, login_required
-from app.utils import generate_aes_key , aes_encrypt, aes_decrypt, generate_otp, send_otp_email
-from datetime import datetime, timedelta
+from app.utils import generate_aes_key, aes_encrypt, aes_decrypt, generate_otp, send_otp_email
 from sqlalchemy import text, exc
+from datetime import datetime, timedelta
 from PIL import Image
-import io
 from io import BytesIO
 from reportlab.lib.pagesizes import letter
 from reportlab.platypus import SimpleDocTemplate, Table, TableStyle
 from reportlab.lib import colors
-OTP_EXPIRATION_TIME = timedelta(minutes=5)
+from reportlab.platypus import Paragraph, Spacer
+from reportlab.lib.styles import getSampleStyleSheet
+import pandas as pd
+import xlwt
+import csv
+import os
+import json
+import io
+from openpyxl import load_workbook
 
+OTP_EXPIRATION_TIME = timedelta(minutes=5)
 
 @app.route("/")
 @app.route("/index")
@@ -132,7 +142,7 @@ def add_password():
     form = PasswordForm()
     if form.validate_on_submit():
         encrypted_password = aes_encrypt(current_user.aes_key, form.password.data)
-        password_entry = Password(website=form.website.data,  
+        password_entry = Password(website=form.website.data,  # Store the website in plaintext
                                   username=form.username.data,
                                   encrypted_password=encrypted_password,
                                   user_id=current_user.id)
@@ -524,20 +534,7 @@ def get_profile_image(user_id):
     
     return '', 404
 
-
-
-
-
-from flask import render_template, request, redirect, url_for, flash, jsonify
-from flask_login import login_required, current_user
-from werkzeug.utils import secure_filename
-import pandas as pd
-import csv
-import os
-from io import BytesIO
-from openpyxl import load_workbook
-from werkzeug.exceptions import BadRequest
-import json
+# v1.10.1
 
 # Define allowed file extensions
 ALLOWED_EXTENSIONS = {'csv', 'xls', 'xlsx', 'json'}
@@ -551,91 +548,91 @@ def validate_file_size(file):
         raise BadRequest("File is too large. Maximum allowed size is 25MB.")
     file.seek(0)  # Reset the file pointer to the start after reading its size.
 
-@app.route("/import_password", methods=['GET', 'POST'])
+@app.route("/import_password", methods=['POST'])
 @login_required
 def import_passwords():
-    if request.method == 'POST':
-        # Validate required fields
-        if 'file' not in request.files or \
-           not request.form.get('website_column') or \
-           not request.form.get('username_column') or \
-           not request.form.get('password_column'):
-            return jsonify({"error": "Please map all required columns"}), 400
+    # Validate required fields
+    if 'file' not in request.files or \
+       not request.form.get('website_column') or \
+       not request.form.get('username_column') or \
+       not request.form.get('password_column'):
+        return jsonify({"error": "Please map all required columns"}), 400
 
-        file = request.files['file']
-        if file.filename == '':
-            return jsonify({"error": "No file selected"}), 400
+    file = request.files['file']
+    if file.filename == '':
+        return jsonify({"error": "No file selected"}), 400
 
-        if not allowed_file(file.filename):
-            return jsonify({"error": "Allowed formats: CSV, Excel, JSON"}), 400
+    if not allowed_file(file.filename):
+        return jsonify({"error": "Allowed formats: CSV, Excel, JSON"}), 400
 
-        try:
-            # Validate file size
-            validate_file_size(file)
+    try:
+        validate_file_size(file)
 
-            # Read file based on extension
-            filename = secure_filename(file.filename)
-            file_ext = filename.rsplit('.', 1)[1].lower()
+        filename = secure_filename(file.filename)
+        file_ext = filename.rsplit('.', 1)[1].lower()
 
-            if file_ext == 'csv':
-                # Process CSV file in a memory-efficient manner
-                csv_reader = csv.DictReader(file)
-                new_entries = []
+        # Dynamically fetch column mappings from form
+        website_column = request.form.get('website_column')
+        username_column = request.form.get('username_column')
+        password_column = request.form.get('password_column')
+
+        new_entries = []
+
+        if file_ext == 'csv':
+                file_stream = io.TextIOWrapper(file.stream, encoding='utf-8')
+                csv_reader = csv.DictReader(file_stream)
+
                 for row in csv_reader:
                     new_entries.append(
                         Password(
-                            website=row.get('website', "Unknown"),
-                            username=row['username'],
-                            encrypted_password=aes_encrypt(current_user.aes_key, row['password']),
+                            website=row.get(website_column, "Unknown"),
+                            username=row.get(username_column, ""),
+                            encrypted_password=aes_encrypt(current_user.aes_key, row.get(password_column, "")),
                             user_id=current_user.id
                         )
                     )
-                db.session.bulk_save_objects(new_entries)
-                db.session.commit()
-            
-            elif file_ext in ['xls', 'xlsx']:
-                # Process Excel file using openpyxl
-                wb = load_workbook(file, read_only=True)
-                sheet = wb.active
-                new_entries = []
-                for row in sheet.iter_rows(min_row=2, values_only=True):  # Skip header row
-                    new_entries.append(
-                        Password(
-                            website=row[0] if row[0] else "Unknown",
-                            username=row[1],
-                            encrypted_password=aes_encrypt(current_user.aes_key, row[2]),
-                            user_id=current_user.id
-                        )
+        elif file_ext in ['xls', 'xlsx']:
+            # Use pandas to read both xls and xlsx formats to avoid openpyxl limitation
+            file.seek(0)
+            df = pd.read_excel(file)
+
+            # Check if columns exist in dataframe
+            if website_column not in df.columns or username_column not in df.columns or password_column not in df.columns:
+                return jsonify({"error": "One or more specified columns not found in the Excel file."}), 400
+
+            for _, row in df.iterrows():
+                new_entries.append(
+                    Password(
+                        website=row.get(website_column, "Unknown"),
+                        username=row.get(username_column, ""),
+                        encrypted_password=aes_encrypt(current_user.aes_key, row.get(password_column, "")),
+                        user_id=current_user.id
                     )
-                db.session.bulk_save_objects(new_entries)
-                db.session.commit()
+                )
 
-            elif file_ext == 'json':
-                # Process JSON file
-                data = json.load(file)
-                new_entries = []
-                for entry in data:
-                    new_entries.append(
-                        Password(
-                            website=entry.get('website', "Unknown"),
-                            username=entry['username'],
-                            encrypted_password=aes_encrypt(current_user.aes_key, entry['password']),
-                            user_id=current_user.id
-                        )
+        elif file_ext == 'json':
+            file_content = file.read().decode('utf-8')
+            data = json.loads(file_content)
+
+            for entry in data:
+                new_entries.append(
+                    Password(
+                        website=entry.get(website_column, "Unknown"),
+                        username=entry.get(username_column, "Unknown"),
+                        encrypted_password=aes_encrypt(current_user.aes_key, entry.get(password_column, "")),
+                        user_id=current_user.id
                     )
-                db.session.bulk_save_objects(new_entries)
-                db.session.commit()
+                )
 
-            flash(f"Successfully imported {len(new_entries)} passwords", "success")
-            return redirect(url_for('dashboard'))
+        db.session.bulk_save_objects(new_entries)
+        db.session.commit()
 
-        except BadRequest as e:
-            return jsonify({"error": str(e)}), 400
-        except Exception as e:
-            db.session.rollback()
-            return jsonify({"error": f"Import failed: {str(e)}"}), 500
+        flash(f"Successfully imported {len(new_entries)} passwords", "success")
+        return redirect(url_for('dashboard'))
 
-    return render_template('import_password.html')
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": f"Import failed: {str(e)}"}), 500
 
 @app.route('/process_file', methods=['POST'])
 @login_required
@@ -657,23 +654,24 @@ def process_file():
 
         if file_ext == 'csv':
             # Use csv.DictReader for streaming CSV files
-            csv_reader = csv.DictReader(file)
+            file_stream = io.TextIOWrapper(file.stream, encoding='utf-8')
+            csv_reader = csv.DictReader(file_stream)
             columns = csv_reader.fieldnames
             preview = [next(csv_reader) for _ in range(3)]  # Preview first 3 rows
             return jsonify({"columns": columns, "preview": preview})
 
         elif file_ext in ['xls', 'xlsx']:
-            # Use openpyxl for streaming Excel files
-            wb = load_workbook(file, read_only=True)
-            sheet = wb.active
-            columns = [cell.value for cell in sheet[1]]  # Get header row
-            preview = [dict(zip(columns, row)) for row in sheet.iter_rows(min_row=2, max_row=3, values_only=True)]
+            # Use pandas to read both xls and xlsx formats to avoid openpyxl limitation
+            file.seek(0)
+            df = pd.read_excel(file)
+            columns = df.columns.tolist()
+            preview = df.head(3).to_dict(orient='records')
             return jsonify({"columns": columns, "preview": preview})
 
         elif file_ext == 'json':
             # Process JSON file
             data = json.load(file)
-            return jsonify({"columns": data[0].keys(), "preview": data[:3]})
+            return jsonify({"columns": list(data[0].keys()), "preview": data[:3]})
 
         else:
             return jsonify({"error": "Unsupported file format"}), 400
@@ -688,76 +686,135 @@ def export_passwords():
         # Get request parameters
         file_format = request.args.get('format', 'csv').lower()
         filename = request.args.get('filename', 'passwords-vaultify').strip()
-        
+
         # Sanitize filename
         filename = "".join(c for c in filename if c.isalnum() or c in ('-', '_')) or 'passwords-vaultify'
-        
+
         # Get current user's passwords
         passwords = Password.query.filter_by(user_id=current_user.id).all()
-        
+
         # Prepare data with decrypted passwords
         data = []
         for p in passwords:
             try:
-                # Decrypt the password using AES
                 decrypted_pw = aes_decrypt(
                     current_user.aes_key,
-                    p.encrypted_password  # Use encrypted_password field
-                ).decode('utf-8')  # Convert bytes to string
+                    p.encrypted_password
+                ).decode('utf-8')
             except Exception as decryption_error:
                 app.logger.error(f"Decryption error for entry {p.id}: {str(decryption_error)}")
                 decrypted_pw = "DECRYPTION_ERROR"
-            
+
             data.append({
                 'website': p.website,
                 'username': p.username,
-                'password': decrypted_pw  # Use decrypted value
+                'password': decrypted_pw
             })
 
+        # Create dataframe
         df = pd.DataFrame(data)
+        
+        # File metadata for PDF export
 
+        export_date = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        metadata = {
+            "exported_date": export_date,
+            "filename": filename,
+            "record_count": len(data)
+        }
         # Validate format
         valid_formats = ['csv', 'xlsx', 'xls', 'json', 'pdf']
         if file_format not in valid_formats:
             return jsonify({'error': 'Invalid file format'}), 400
 
-        # Create in-memory file buffer
+        # Create output buffer
         output = BytesIO()
-        
-        # Generate file based on format
+
+        # Export based on format
         if file_format == 'csv':
             df.to_csv(output, index=False)
+            output.seek(0)
             mimetype = 'text/csv'
-            
+
         elif file_format == 'xlsx':
             with pd.ExcelWriter(output, engine='openpyxl') as writer:
                 df.to_excel(writer, index=False, sheet_name='Passwords')
+            output.seek(0)
             mimetype = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-            
+
         elif file_format == 'xls':
-            with pd.ExcelWriter(output, engine='xlwt') as writer:
-                df.to_excel(writer, index=False, sheet_name='Passwords')
+            # Use xlwt directly for .xls export
+            workbook = xlwt.Workbook()
+            sheet = workbook.add_sheet('Passwords')
+
+            # Write header row
+            for col_idx, column in enumerate(df.columns):
+                sheet.write(0, col_idx, column)
+
+            # Write data rows
+            for row_idx, row in enumerate(df.values, start=1):
+                for col_idx, value in enumerate(row):
+                    sheet.write(row_idx, col_idx, value)
+
+            workbook.save(output)  # Save to BytesIO
+            output.seek(0)
             mimetype = 'application/vnd.ms-excel'
-            
+
         elif file_format == 'json':
-            output.write(df.to_json(orient='records').encode())
+            json_data = df.to_json(orient='records', indent=4)
+            output.write(json_data.encode('utf-8'))
+            output.seek(0)
             mimetype = 'application/json'
-            
+
         elif file_format == 'pdf':
-            # Implement PDF generation (same logic as before)
+            doc = SimpleDocTemplate(output, pagesize=letter)
+            elements = []
+
+            # Title of the document
+            title_text = "Vaultify Password Export"
+            styles = getSampleStyleSheet()
+            title = Paragraph(title_text, styles['Title'])
+            elements.append(title)
+            elements.append(Spacer(1, 20))  # Add space after title
+
+            # Table Data
+            table_data = [['Website', 'Username', 'Password']]
+            for item in data:
+                table_data.append([item['website'], item['username'], item['password']])
+
+            table = Table(table_data)
+            table.setStyle(TableStyle([ 
+                ('BACKGROUND', (0, 0), (-1, 0), colors.grey),
+                ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+                ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+                ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+                ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+                ('GRID', (0, 0), (-1, -1), 1, colors.black),
+                ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.whitesmoke, colors.lightcyan])
+            ]))
+            elements.append(table)
+            elements.append(Spacer(1, 20))  # Add space after table
+
+            # Metadata under the table data
+            export_date = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+            metadata_text = f"Exported on: {export_date}\nFilename: {filename}\nRecords: {len(data)}"
+            metadata_style = styles['Normal']
+            metadata_style.fontSize = 8  # Smaller font size for metadata
+            metadata = Paragraph(metadata_text, metadata_style)
+            elements.append(metadata)
+
+            doc.build(elements)
+            output.seek(0)
             mimetype = 'application/pdf'
 
-        # Prepare response
-        output.seek(0)
-        response = make_response(output.read())
-        response.headers['Content-Type'] = mimetype
-        response.headers['Content-Disposition'] = \
-            f'attachment; filename="{filename}.{file_format}"; filename*=UTF-8\'\'{filename}.{file_format}'
-        
-        return response
+        # Finally return file
+        return send_file(
+            output,
+            mimetype=mimetype,
+            as_attachment=True,
+            download_name=f"{filename}.{file_format}"
+        )
 
     except Exception as e:
         app.logger.error(f'Export error: {str(e)}')
-        return (
-            'error Failed to generate export file. Please try again.' 
-        ), 500
+        return 'error Failed to generate export file. Please try again.', 500
