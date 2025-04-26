@@ -17,10 +17,13 @@ Flask-Bcrypt==1.0.1
 Flask-Login==0.6.3
 Flask-Mail==0.10.0
 Flask-Migrate==4.1.0
+Flask-Principal==0.4.0
+Flask-Security==5.6.0
 Flask-SQLAlchemy==3.1.1
 Flask-WTF==1.2.2
 greenlet==3.1.1
 idna==3.10
+importlib_resources==6.5.2
 itsdangerous==2.2.0
 Jinja2==3.1.6
 Mako==1.3.9
@@ -29,7 +32,9 @@ Naked==0.1.32
 numpy==2.2.4
 openpyxl==3.1.5
 pandas==2.2.3
-pillow==11.2.0
+passlib==1.7.4
+pillow==11.2.1
+psycopg2-binary==2.9.10
 pycparser==2.22
 PyMySQL==1.1.1
 python-dateutil==2.9.0.post0
@@ -46,4 +51,5 @@ tzdata==2025.2
 urllib3==2.3.0
 Werkzeug==3.1.3
 WTForms==3.2.1
+xlrd==2.0.1
 xlwt==1.3.0
