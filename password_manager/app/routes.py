@@ -818,3 +818,68 @@ def export_passwords():
     except Exception as e:
         app.logger.error(f'Export error: {str(e)}')
         return 'error Failed to generate export file. Please try again.', 500
+
+# 400 Bad Request
+@app.errorhandler(400)
+def bad_request_error(error):
+    return render_template('errors/400.html'), 400
+
+# 401 Unauthorized
+@app.errorhandler(401)
+def unauthorized_error(error):
+    return render_template('errors/401.html'), 401
+
+# 403 Forbidden
+@app.errorhandler(403)
+def forbidden_error(error):
+    return render_template('errors/403.html'), 403
+
+# 404 Not Found
+@app.errorhandler(404)
+def not_found_error(error):
+    return render_template('errors/404.html'), 404
+
+# 405 Method Not Allowed
+@app.errorhandler(405)
+def method_not_allowed_error(error):
+    return render_template('errors/405.html'), 405
+
+# 408 Request Timeout (optional, rare)
+@app.errorhandler(408)
+def request_timeout_error(error):
+    return render_template('errors/408.html'), 408
+
+# 413 Payload Too Large
+@app.errorhandler(413)
+def payload_too_large_error(error):
+    return render_template('errors/413.html'), 413
+
+# 415 Unsupported Media Type
+@app.errorhandler(415)
+def unsupported_media_type_error(error):
+    return render_template('errors/415.html'), 415
+
+# 429 Too Many Requests (if you have rate limiting)
+@app.errorhandler(429)
+def too_many_requests_error(error):
+    return render_template('errors/429.html'), 429
+
+# 500 Internal Server Error
+@app.errorhandler(500)
+def internal_server_error(error):
+    return render_template('errors/500.html'), 500
+
+# 502 Bad Gateway (optional, rare)
+@app.errorhandler(502)
+def bad_gateway_error(error):
+    return render_template('errors/502.html'), 502
+
+# 503 Service Unavailable (optional, rare)
+@app.errorhandler(503)
+def service_unavailable_error(error):
+    return render_template('errors/503.html'), 503
+
+# 504 Gateway Timeout (optional, rare)
+@app.errorhandler(504)
+def gateway_timeout_error(error):
+    return render_template('errors/504.html'), 504
