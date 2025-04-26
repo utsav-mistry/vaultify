@@ -11,19 +11,71 @@
     <div class="accordion" id="versionAccordion">
 
         <div class="accordion-item">
-            <h2 class="accordion-header" id="heading10">
+            <h2 class="accordion-header" id="heading12">
+                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
+                    data-bs-target="#collapse12" aria-expanded="false" aria-controls="collapse12">
+                    Vaultify v1.10.1 - File Import/Export System and other small improvements
+                    <small class="version-small">(Current Version)</small>
+                </button>
+            </h2>
+            <div id="collapse12" class="accordion-collapse collapse" aria-labelledby="heading12">
+                <div class="accordion-body m-1">
+                    <div class="category">
+                        <h5>New Features</h5>
+                        <ul>
+                            <li>Added secure file upload handling for password imports</li>
+                            <li>Implemented multi-format export (CSV, XLSX, XLS, JSON, PDF)</li>
+                            <li>Column mapping interface for spreadsheet imports</li>
+                            <li>Client-side file validation (type/size checks)</li>
+                        </ul>
+                    </div>
+
+                    <div class="category">
+                        <h5>Improvements</h5>
+                        <ul>
+                            <li>Streamlined import flow with step-by-step column selection</li>
+                            <li>Added export filename customization</li>
+                            <li>Progress indicators for file processing</li>
+                            <li>Enhanced error handling for malformed files</li>
+                        </ul>
+                    </div>
+
+                    <div class="category">
+                        <h5>Security</h5>
+                        <ul>
+                            <li>File content sanitization for imports</li>
+                            <li>Server-side validation of all imported data</li>
+                            <li>Secure download handling for exports</li>
+                        </ul>
+                    </div>
+
+                    <div class="category">
+                        <h5>Compatibility & UI improvements</h5>
+                        <ul>
+                            <li>Supports all major password manager export formats</li>
+                            <li>Dark mode styling for all file dialogs</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="accordion-item">
+            <h2 class="accordion-header" id="heading11">
                 <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
                     data-bs-target="#collapse11" aria-expanded="false" aria-controls="collapse11">
-                    Vaultify v1.10.0 - Profile image update <small class="version-small">(Current Version)</small>
+                    Vaultify v1.10.0 - Profile image update
                 </button>
             </h2>
             <div id="collapse11" class="accordion-collapse collapse" aria-labelledby="heading11">
                 <div class="accordion-body m-1">
-                    Enabled users to update their account profile picture adding a pinch of personalization and customization.
+                    Enabled users to update their account profile picture adding a pinch of personalization and
+                    customization.
                     The images are stored in Database.
                 </div>
             </div>
         </div>
+
         <div class="accordion-item">
             <h2 class="accordion-header" id="heading10">
                 <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
