@@ -23,4 +23,4 @@ This software is provided **"as is"**, without warranty of any kind, express or 
 For complete details on the **CC BY-NC-ND 4.0** license, visit:  
 [Creative Commons Attribution-NonCommercial-NoDerivatives 4.0 International](https://creativecommons.org/licenses/by-nc-nd/4.0/)
 
-© 2025 Vaultify Inc. All rights reserved.
+© 2025 Vaultify, Inc. All rights reserved.
