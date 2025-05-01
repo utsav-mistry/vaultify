@@ -438,7 +438,7 @@ ALLOWED_EXTENSIONS_PICTURE = {'png', 'jpg', 'jpeg', 'gif'}
 
 
 def allowed_file(filename):
-    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS_PICTURE
+    return '.' in filename and filename.rsplit('.', 1)[1].strip().lower() in ALLOWED_EXTENSIONS_PICTURE
 
 def resize_and_crop_image(image_data, target_size=(300, 300)):
     """Resize and crop image to a fixed square size (300x300)."""
@@ -478,7 +478,7 @@ def update_profile_image():
     file = request.files.get('profile_image')
     app.logger.info(f"Uploaded file: {file.filename}, Content-Type: {file.content_type}")
     ext = file.filename.rsplit('.', 1)[1].lower()
-    app.logger.info(f"Extension: '{ext}'")
+    app.logger.info(f"Extension (raw): {repr(ext)}")
     app.logger.info(f"allowed_file: {allowed_file(file.filename)}")
 
     if not file or file.filename == '' or not allowed_file(file.filename):
