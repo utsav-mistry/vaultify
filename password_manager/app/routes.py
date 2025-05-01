@@ -476,6 +476,7 @@ def resize_and_crop_image(image_data, target_size=(300, 300)):
 def update_profile_image():
     """Handle profile image upload and store in MySQL as a BLOB."""
     file = request.files.get('profile_image')
+    app.logger.info(f"Uploaded file: {file.filename}, Content-Type: {file.content_type}")
 
     if not file or file.filename == '' or not allowed_file(file.filename):
         flash('Invalid file. Please upload a valid image (PNG, JPG, JPEG, GIF).', 'error')
