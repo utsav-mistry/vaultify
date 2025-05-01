@@ -437,7 +437,7 @@ def version():
 ALLOWED_EXTENSIONS_PICTURE = {'png', 'jpg', 'jpeg', 'gif'}
 
 
-def allowed_file(filename):
+def allowed_file_picture(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].strip().lower() in ALLOWED_EXTENSIONS_PICTURE
 
 def resize_and_crop_image(image_data, target_size=(300, 300)):
@@ -481,7 +481,7 @@ def update_profile_image():
     app.logger.info(f"Extension (raw): {repr(ext)}")
     app.logger.info(f"allowed_file: {allowed_file(file.filename)}")
 
-    if not file or file.filename == '' or not allowed_file(file.filename):
+    if not file or file.filename == '' or not allowed_file_picture(file.filename):
         flash('Invalid file. Please upload a valid image (PNG, JPG, JPEG, GIF).', 'error')
         return redirect(url_for('profile'))
 
