@@ -530,7 +530,7 @@ def get_profile_image(user_id):
     """Retrieve and serve the user's profile image from the database."""
     
     # Ensure the logged-in user is trying to access their own profile image, or is an admin
-    if current_user.id != user_id and not current_user.is_admin:
+    if current_user.id != user_id:
         return render_template('403.html'), 403  # Render the 403 page
     
     # Retrieve the user from the database
