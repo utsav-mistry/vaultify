@@ -476,10 +476,6 @@ def resize_and_crop_image(image_data, target_size=(300, 300)):
 def update_profile_image():
     """Handle profile image upload and store in MySQL as a BLOB."""
     file = request.files.get('profile_image')
-    app.logger.info(f"Uploaded file: {file.filename}, Content-Type: {file.content_type}")
-    ext = file.filename.rsplit('.', 1)[1].lower()
-    app.logger.info(f"Extension (raw): {repr(ext)}")
-    app.logger.info(f"allowed_file: {allowed_file(file.filename)}")
 
     if not file or file.filename == '' or not allowed_file_picture(file.filename):
         flash('Invalid file. Please upload a valid image (PNG, JPG, JPEG, GIF).', 'error')
@@ -529,14 +525,22 @@ def remove_profile_image():
     return redirect(url_for('profile'))
 
 @app.route('/get_profile_image/<int:user_id>')
+@login_required
 def get_profile_image(user_id):
-
     """Retrieve and serve the user's profile image from the database."""
+    
+    # Ensure the logged-in user is trying to access their own profile image, or is an admin
+    if current_user.id != user_id and not current_user.is_admin:
+        return render_template('403.html'), 403  # Render the 403 page
+    
+    # Retrieve the user from the database
     user = User.query.get_or_404(user_id)
+    
     if user.profile_image:
+        # Serve the profile image
         return send_file(BytesIO(user.profile_image), mimetype='image/jpeg')
     
-    return '', 404
+    return '', 404  # Not found if the image doesn't exist
 
 # v1.10.1
 
