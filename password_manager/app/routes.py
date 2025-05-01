@@ -434,11 +434,11 @@ def version():
 
 
 # Allowed file types for profile images
-ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
+ALLOWED_EXTENSIONS_PICTURE = {'png', 'jpg', 'jpeg', 'gif'}
 
 def allowed_file(filename):
     """Check if the uploaded file is an allowed image format."""
-    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS_PICTURE
 
 def resize_and_crop_image(image_data, target_size=(300, 300)):
     """Resize and crop image to a fixed square size (300x300)."""
@@ -537,11 +537,11 @@ def get_profile_image(user_id):
 # v1.10.1
 
 # Define allowed file extensions
-ALLOWED_EXTENSIONS = {'csv', 'xls', 'xlsx', 'json'}
+ALLOWED_EXTENSIONS_FILE = {'csv', 'xls', 'xlsx', 'json'}
 MAX_FILE_SIZE = 25 * 1024 * 1024  # 25MB limit for file upload
 
 def allowed_file(filename):
-    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS_FILE
 
 def validate_file_size(file):
     if len(file.read()) > MAX_FILE_SIZE:
