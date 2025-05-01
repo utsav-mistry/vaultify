@@ -477,7 +477,7 @@ def update_profile_image():
     """Handle profile image upload and store in MySQL as a BLOB."""
     file = request.files.get('profile_image')
     app.logger.info(f"Uploaded file: {file.filename}, Content-Type: {file.content_type}")
-    ext = filename.rsplit('.', 1)[1].lower()
+    ext = file.filename.rsplit('.', 1)[1].lower()
     app.logger.info(f"Extension: '{ext}'")
     app.logger.info(f"allowed_file: {allowed_file(file.filename)}")
 
