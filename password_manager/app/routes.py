@@ -437,7 +437,6 @@ def version():
 ALLOWED_EXTENSIONS_PICTURE = {'png', 'jpg', 'jpeg', 'gif'}
 
 def allowed_file(filename):
-    """Check if the uploaded file is an allowed image format."""
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS_PICTURE
 
 def resize_and_crop_image(image_data, target_size=(300, 300)):
