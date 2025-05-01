@@ -438,9 +438,6 @@ ALLOWED_EXTENSIONS_PICTURE = {'png', 'jpg', 'jpeg', 'gif'}
 
 
 def allowed_file(filename):
-    ext = filename.rsplit('.', 1)[1].lower()
-    app.logger.info(f"Extension: '{ext}'")
-    app.logger.info(f"allowed_file: {allowed_file(file.filename)}")
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS_PICTURE
 
 def resize_and_crop_image(image_data, target_size=(300, 300)):
@@ -480,6 +477,9 @@ def update_profile_image():
     """Handle profile image upload and store in MySQL as a BLOB."""
     file = request.files.get('profile_image')
     app.logger.info(f"Uploaded file: {file.filename}, Content-Type: {file.content_type}")
+    ext = filename.rsplit('.', 1)[1].lower()
+    app.logger.info(f"Extension: '{ext}'")
+    app.logger.info(f"allowed_file: {allowed_file(file.filename)}")
 
     if not file or file.filename == '' or not allowed_file(file.filename):
         flash('Invalid file. Please upload a valid image (PNG, JPG, JPEG, GIF).', 'error')
