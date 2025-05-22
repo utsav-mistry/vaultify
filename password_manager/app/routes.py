@@ -277,6 +277,7 @@ def approve_device(device_id):
     device = Device.query.filter_by(id=device_id, user_id=current_user.id).first()
     if device:
         device.is_approved = True
+        device.is_rejected = False
         db.session.commit()
         flash("Device approved.", "success")
     else:
@@ -309,6 +310,7 @@ def revoke_device(device_id):
     device = Device.query.filter_by(id=device_id, user_id=current_user.id).first()
     if device:
         device.is_approved = False
+        device.is_rejected = True
         db.session.commit()
         flash("Device access revoked.", "success")
     else:
