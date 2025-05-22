@@ -166,7 +166,7 @@
                                     </button>
                                 </form>
                                 {% else %}
-                                <form method="POST" action="{{ url_for('accept_device', device_id=device.id) }}">
+                                <form method="POST" action="{{ url_for('approve_device', device_id=device.id) }}">
                                     <button class="btn btn-outline-success btn-sm w-100">
                                         <i class="fas fa-check-circle me-1"></i> Accept
                                     </button>
