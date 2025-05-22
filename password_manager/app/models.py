@@ -23,10 +23,23 @@ class Password(db.Model):
     encrypted_password = db.Column(db.String(255), nullable=False)
     date_created = db.Column(db.DateTime, default=datetime.utcnow)  # Ensure timestamping
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
-
 class Log(db.Model):
+    __tablename__ = 'logs'
+
     id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)  # Fixed ForeignKey reference
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)
     timestamp = db.Column(db.DateTime, default=datetime.utcnow)
     action = db.Column(db.Text, nullable=False)
     details = db.Column(db.Text, nullable=True)
+
+class Device(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    device_name = db.Column(db.String(100), nullable=False)
+    ip_address = db.Column(db.String(45), nullable=True)  # IPv6 compatible
+    location = db.Column(db.String(100), nullable=True)
+    user_agent = db.Column(db.Text, nullable=True)
+    is_approved = db.Column(db.Boolean, default=False)
+    last_used = db.Column(db.DateTime, default=datetime.utcnow)
+
+    user = db.relationship('User', backref=db.backref('devices', lazy=True))
