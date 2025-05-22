@@ -78,6 +78,30 @@ class LinearSearchTree:
 def generate_otp():
     return str(random.randint(1000, 9999)) 
 
+# app/utils.py
+
+from user_agents import parse
+
+def get_device_type(user_agent_string):
+    ua = parse(user_agent_string)
+    if ua.is_mobile:
+        return "mobile"
+    elif ua.is_tablet:
+        return "tablet"
+    elif ua.is_pc:
+        return "laptop"
+    return "unknown"
+
+def format_user_agent(user_agent_string):
+    ua = parse(user_agent_string)
+
+    device_type = get_device_type(user_agent_string).capitalize()
+    os = f"{ua.os.family} {ua.os.version_string}"
+    browser = f"{ua.browser.family} {ua.browser.version_string}"
+
+    return f"{device_type} | {os} | {browser}"
+
+
 from dotenv import load_dotenv
 
 # Load environment variables
@@ -182,7 +206,7 @@ def send_otp_email(user_email, otp):
                 </div>
                 <p>This code is valid for the next 5 minutes. If you did not request this code, please disregard this email.</p>
 
-                <p>If you need assistance or have any questions, feel free to contact us at <a href="mailto:contact.vaultify@gmail.com">contact.vaultify@gmail.com</a>.</p>
+                <p>If you need assistance or have any questions, feel free to contact us at <a href="auth.vaultify@gmail.com">auth.vaultify@gmail.com</a>.</p>
 
                 <p style="text-align:left;">Best regards,<br>The Vaultify Team</p>
 
