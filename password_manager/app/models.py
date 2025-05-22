@@ -41,5 +41,7 @@ class Device(db.Model):
     user_agent = db.Column(db.Text, nullable=True)
     is_approved = db.Column(db.Boolean, default=False)
     last_used = db.Column(db.DateTime, default=datetime.utcnow)
+    is_rejected = db.Column(db.Boolean, default=False)
+
 
     user = db.relationship('User', backref=db.backref('devices', lazy=True))
