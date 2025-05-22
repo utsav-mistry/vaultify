@@ -3,9 +3,9 @@ from flask_login import login_user, current_user, logout_user, login_required
 from werkzeug.utils import secure_filename
 from werkzeug.exceptions import BadRequest
 from app import app, db, bcrypt
-from app.models import User, Password
+from app.models import User, Password, Device
 from app.forms import RegistrationForm, LoginForm, PasswordForm
-from app.utils import generate_aes_key, aes_encrypt, aes_decrypt, generate_otp, send_otp_email
+from app.utils import generate_aes_key, aes_encrypt, aes_decrypt, generate_otp, send_otp_email, get_device_type, format_user_agent
 from sqlalchemy import text, exc
 from datetime import datetime, timedelta
 from PIL import Image
@@ -24,6 +24,49 @@ import io
 from openpyxl import load_workbook
 
 OTP_EXPIRATION_TIME = timedelta(minutes=5)
+
+
+def get_client_ip():
+    forwarded_for = request.headers.get('X-Forwarded-For', '')
+    if forwarded_for:
+        return forwarded_for.split(',')[0].strip()
+    return request.remote_addr
+
+
+def get_user_agent():
+    return request.headers.get('User-Agent', 'Unknown')
+
+def log_device(user):
+    ip = get_client_ip()
+    ua = get_user_agent()
+
+    # Fallback logic for device name
+    if '(' in ua:
+        device_name = ua.split('(')[1].split(')')[0]
+    else:
+        device_name = 'Unknown Device'
+
+    # Check if same device already exists
+    existing_device = Device.query.filter_by(
+        user_id=user.id,
+        ip_address=ip,
+        user_agent=ua
+    ).first()
+
+    if existing_device:
+        existing_device.last_used = datetime.utcnow()
+    else:
+        new_device = Device(
+            user_id=user.id,
+            device_name=device_name,
+            ip_address=ip,
+            user_agent=ua,
+            is_approved=False
+        )
+        db.session.add(new_device)
+
+    db.session.commit()
+
 
 @app.route("/")
 @app.route("/index")
@@ -79,6 +122,7 @@ def login():
         user = User.query.filter_by(email=form.email.data).first()
         if user and bcrypt.check_password_hash(user.password, form.password.data):
             login_user(user, remember=True)
+            log_device(user)
             return redirect(url_for('dashboard'))
         else:
             flash('Login failed. Check email and password.')
@@ -106,8 +150,6 @@ def dashboard():
             results = [pw for pw in password_list if search_query in pw["website"].lower()]
 
     return render_template('dashboard.html', passwords=results)
-
-
 
 @app.route('/delete_profile', methods=['GET', 'POST'])
 @login_required
@@ -190,15 +232,89 @@ def delete_password(password_id):
     db.session.commit()
     return redirect(url_for('dashboard'))
 
+from pytz import timezone, utc
+from datetime import datetime
+
+
 @app.route('/profile')
 @login_required
 def profile():
-    # Direct SQL query to fetch logs for the current user
     query = text("SELECT * FROM logs WHERE user_id = :user_id ORDER BY timestamp DESC")
     logs = db.session.execute(query, {'user_id': current_user.id}).fetchall()
-    
-    # Pass logs to the profile.html template
-    return render_template('profile.html', logs=logs)
+
+    ist = timezone('Asia/Kolkata')
+    converted_logs = []
+    for row in logs:
+        log_dict = dict(row._mapping)
+        timestamp = log_dict.get('timestamp')
+        if timestamp and timestamp.tzinfo is None:
+            timestamp = utc.localize(timestamp)
+        log_dict['timestamp'] = timestamp.astimezone(ist).strftime('%Y-%m-%d %H:%M:%S')
+        converted_logs.append(log_dict)
+
+    devices = Device.query.filter_by(user_id=current_user.id).all()
+
+    # Determine current session's IP and user-agent
+    current_ip = request.remote_addr
+    current_ua = request.headers.get('User-Agent')
+
+    for device in devices:
+        device.device_type = get_device_type(device.user_agent)
+        device.formatted_info = format_user_agent(device.user_agent)
+        device.is_current = (device.ip_address == current_ip and device.user_agent == current_ua)
+
+    # Convert last_used to IST
+        if device.last_used and device.last_used.tzinfo is None:
+            device.last_used = utc.localize(device.last_used)
+        if device.last_used:
+            device.last_used = device.last_used.astimezone(ist)
+
+    return render_template('profile.html', logs=converted_logs, devices=devices)
+
+@app.route('/approve_device/<int:device_id>', methods=['POST'])
+@login_required
+def approve_device(device_id):
+    device = Device.query.filter_by(id=device_id, user_id=current_user.id).first()
+    if device:
+        device.is_approved = True
+        db.session.commit()
+        flash("Device approved.", "success")
+    else:
+        flash("Device not found.", "danger")
+    return redirect(url_for('profile'))
+
+@app.before_request
+def enforce_device_approval():
+    # Skip for static files and public routes
+    if request.endpoint in ['static', 'index', 'auth', 'logout']:
+        return
+
+    if current_user.is_authenticated:
+        device_id = session.get('device_id')
+        if device_id:
+            device = Device.query.filter_by(id=device_id, user_id=current_user.id).first()
+            if not device or not device.is_approved:
+                logout_user()
+                session.pop('device_id', None)  # Clean up session
+                flash("Access from this device has been revoked.", "danger")
+                return redirect(url_for('auth'))
+
+@app.route('/revoke_device/<int:device_id>', methods=['POST'])
+@login_required
+def revoke_device(device_id):
+    if device_id == session.get('device_id'):
+        flash("You cannot revoke your current active device.", "warning")
+        return redirect(url_for('profile'))
+
+    device = Device.query.filter_by(id=device_id, user_id=current_user.id).first()
+    if device:
+        device.is_approved = False
+        db.session.commit()
+        flash("Device access revoked.", "success")
+    else:
+        flash("Device not found.", "danger")
+    return redirect(url_for('profile'))
+
 
 @app.route('/verify_otp', methods=['GET', 'POST'])
 def verify_otp():
@@ -418,6 +534,7 @@ def learn_more():
 @app.route("/logout")
 def logout():
     logout_user()
+    session.pop('device_id', None)
     return redirect(url_for('index'))
 
 @app.route("/privacy-policy")
@@ -826,6 +943,11 @@ def export_passwords():
     except Exception as e:
         app.logger.error(f'Export error: {str(e)}')
         return 'error Failed to generate export file. Please try again.', 500
+
+@app.route('/.well-known/appspecific/com.chrome.devtools.json')
+def chrome_devtools_stub():
+    return '', 204  # No content
+
 
 # 400 Bad Request
 @app.errorhandler(400)
