@@ -150,6 +150,8 @@
                                 <strong>Status:</strong>
                                 {% if device.is_current %}
                                 <span class="badge bg-primary">Current Device</span>
+                                {% elif device.is_rejected %}
+                                <span class="badge bg-danger">Rejected</span>
                                 {% elif device.is_approved %}
                                 <span class="badge bg-success">Approved</span>
                                 {% else %}
@@ -159,18 +161,33 @@
         
                             <div class="mt-auto">
                                 {% if not device.is_current %}
-                                {% if device.is_approved %}
+                                {% if device.is_rejected %}
+                                <div class="text-danger small text-center">
+                                    <i class="fas fa-times-circle me-1"></i> Rejected
+                                </div>
+        
+                                {% elif device.is_approved %}
                                 <form method="POST" action="{{ url_for('revoke_device', device_id=device.id) }}">
                                     <button class="btn btn-outline-danger btn-sm w-100">
                                         <i class="fas fa-sign-out-alt me-1"></i> Revoke
                                     </button>
                                 </form>
+        
                                 {% else %}
-                                <form method="POST" action="{{ url_for('approve_device', device_id=device.id) }}">
-                                    <button class="btn btn-outline-success btn-sm w-100">
-                                        <i class="fas fa-check-circle me-1"></i> Accept
-                                    </button>
-                                </form>
+                                <div class="d-flex gap-2">
+                                    <form method="POST" action="{{ url_for('approve_device', device_id=device.id) }}"
+                                        class="w-100">
+                                        <button class="btn btn-outline-success btn-sm w-100">
+                                            <i class="fas fa-check-circle me-1"></i> Accept
+                                        </button>
+                                    </form>
+                                    <form method="POST" action="{{ url_for('reject_device', device_id=device.id) }}"
+                                        class="w-100">
+                                        <button class="btn btn-outline-danger btn-sm w-100">
+                                            <i class="fas fa-times-circle me-1"></i> Reject
+                                        </button>
+                                    </form>
+                                </div>
                                 {% endif %}
                                 {% else %}
                                 <div class="text-muted small text-center mt-2">
@@ -184,7 +201,7 @@
                 {% endfor %}
             </div>
         </div>
-
+        
     </div>
 </div>
 
