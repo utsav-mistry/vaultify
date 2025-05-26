@@ -236,48 +236,51 @@ def delete_password(password_id):
     db.session.commit()
     return redirect(url_for('dashboard'))
 
-
-
-
-
 @app.route('/profile')
 @login_required
 def profile():
-    # Query activity logs
-    query = text("SELECT * FROM logs WHERE user_id = :user_id ORDER BY timestamp DESC")
-    logs = db.session.execute(query, {'user_id': current_user.id}).fetchall()
+    # Restore device_id from existing approved device if session was cleared
+    if 'device_id' not in session:
+        matching_device = Device.query.filter_by(
+            user_id=current_user.id,
+            ip_address=request.remote_addr,
+            user_agent=request.headers.get('User-Agent'),
+            is_approved=True,
+            is_rejected=False
+        ).order_by(Device.id.desc()).first()
 
-    # Convert timestamps to IST
-    ist = timezone('Asia/Kolkata')
-    converted_logs = []
-    for row in logs:
-        log_dict = dict(row._mapping)
-        timestamp = log_dict.get('timestamp')
-        if timestamp and timestamp.tzinfo is None:
-            timestamp = utc.localize(timestamp)
-        if timestamp:
-            log_dict['timestamp'] = timestamp.astimezone(ist).strftime('%Y-%m-%d %H:%M:%S')
-        converted_logs.append(log_dict)
+        if matching_device:
+            session['device_id'] = matching_device.id
 
-    # Fetch all devices for the user
-    devices = Device.query.filter_by(user_id=current_user.id).all()
     current_device_id = session.get('device_id')
 
+    # Fetch and convert logs
+    logs = Log.query.filter_by(user_id=current_user.id).order_by(Log.timestamp.desc()).all()
+    IST = timezone(timedelta(hours=5, minutes=30))
+
+    for log in logs:
+        if log.timestamp:
+            if log.timestamp.tzinfo is None:
+                log.timestamp = log.timestamp.replace(tzinfo=timezone.utc)
+            log.timestamp = log.timestamp.astimezone(IST)
+            log.timestamp = log.timestamp.strftime('%Y-%m-%d %H:%M:%S')
+
+    # Fetch user's devices
+    devices = Device.query.filter_by(user_id=current_user.id).all()
+
     for device in devices:
-        # Set device type and formatted string
+        # Enrich device with type and formatted label
         device.device_type = get_device_type(device.user_agent)
         device.formatted_info = format_user_agent(device.user_agent)
-
-        # Mark current device based on session-stored device ID
         device.is_current = (device.id == current_device_id)
 
-        # Convert last_used timestamp to IST if necessary
+        # Format last_used timestamp
         if device.last_used:
             if device.last_used.tzinfo is None:
-                device.last_used = utc.localize(device.last_used)
-            device.last_used = device.last_used.astimezone(ist)
-    return render_template('profile.html', logs=converted_logs, devices=devices)
+                device.last_used = device.last_used.replace(tzinfo=timezone.utc)
+            device.last_used = device.last_used.astimezone(IST)
 
+    return render_template('profile.html', logs=logs, devices=devices)
 
 @app.route('/approve_device/<int:device_id>', methods=['POST'])
 @login_required
