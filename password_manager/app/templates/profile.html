@@ -123,7 +123,14 @@
             <div class="row g-4">
                 {% for device in devices %}
                 <div class="col-md-6 col-lg-4">
-                    <div class="card border-0 shadow-sm h-100">
+                    <div class="card border-0 shadow-sm h-100 position-relative">
+                        {% if device.is_rejected %}
+                        <form method="POST" action="{{ url_for('delete_device', device_id=device.id) }}" class="position-absolute top-0 end-0 m-2">
+                            <button type="submit" class="btn btn-sm btn-outline-danger" title="Delete Device">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </form>
+                        {% endif %}
                         <div class="card-body d-flex flex-column">
                             <div class="d-flex align-items-center mb-3">
                                 <div class="me-3 fs-2 text-muted">
@@ -142,7 +149,7 @@
                                     <small class="text-muted">{{ device.ip_address }}</small>
                                 </div>
                             </div>
-        
+                    
                             <p class="mb-1 text-muted small">
                                 <strong>Last Used:</strong> {{ device.last_used.strftime('%Y-%m-%d %H:%M:%S') }}
                             </p>
@@ -158,31 +165,29 @@
                                 <span class="badge bg-warning text-dark">Pending</span>
                                 {% endif %}
                             </p>
-        
+                    
                             <div class="mt-auto">
                                 {% if not device.is_current %}
                                 {% if device.is_rejected %}
                                 <div class="text-danger small text-center">
                                     <i class="fas fa-times-circle me-1"></i> Rejected
                                 </div>
-        
+                    
                                 {% elif device.is_approved %}
                                 <form method="POST" action="{{ url_for('revoke_device', device_id=device.id) }}">
                                     <button class="btn btn-outline-danger btn-sm w-100">
                                         <i class="fas fa-sign-out-alt me-1"></i> Revoke
                                     </button>
                                 </form>
-        
+                    
                                 {% else %}
                                 <div class="d-flex gap-2">
-                                    <form method="POST" action="{{ url_for('approve_device', device_id=device.id) }}"
-                                        class="w-100">
+                                    <form method="POST" action="{{ url_for('approve_device', device_id=device.id) }}" class="w-100">
                                         <button class="btn btn-outline-success btn-sm w-100">
                                             <i class="fas fa-check-circle me-1"></i> Accept
                                         </button>
                                     </form>
-                                    <form method="POST" action="{{ url_for('revoke_device', device_id=device.id) }}"
-                                        class="w-100">
+                                    <form method="POST" action="{{ url_for('revoke_device', device_id=device.id) }}" class="w-100">
                                         <button class="btn btn-outline-danger btn-sm w-100">
                                             <i class="fas fa-times-circle me-1"></i> Reject
                                         </button>
