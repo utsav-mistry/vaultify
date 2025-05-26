@@ -244,7 +244,6 @@ def profile():
             user_id=current_user.id,
             ip_address=request.remote_addr,
             user_agent=request.headers.get('User-Agent'),
-            is_approved=True,
             is_rejected=False
         ).order_by(Device.id.desc()).first()
 
