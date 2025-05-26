@@ -308,20 +308,36 @@ def approve_device(device_id):
 
 @app.before_request
 def enforce_device_permissions():
-    # Routes always allowed
     safe_endpoints = {
         'static', 'index', 'login', 'logout', 'register', 'verify_otp',
         'forgot_password', 'reset_password', 'dashboard',
         'add_password', 'edit_password', 'delete_password',
-        'import_passwords', 'export_passwords', 'process_file'
+        'import_passwords', 'export_passwords', 'process_file',
+        'learn_more', 'privacy_policy', 'terms_of_service',
+        'version', 'chrome_devtools_stub'
     }
 
     if request.endpoint in safe_endpoints or (request.endpoint or '').startswith('get_profile_image'):
         return
 
     if current_user.is_authenticated:
+        device = None
         device_id = session.get('device_id')
-        device = Device.query.filter_by(id=device_id, user_id=current_user.id).first()
+
+        # Try session device_id first
+        if device_id:
+            device = Device.query.filter_by(id=device_id, user_id=current_user.id).first()
+
+        # Fallback to IP + UA if needed (mobile compatibility)
+        if not device:
+            device = Device.query.filter_by(
+                user_id=current_user.id,
+                ip_address=get_client_ip(),
+                user_agent=get_user_agent()
+            ).order_by(Device.id.desc()).first()
+
+            if device:
+                session['device_id'] = device.id  # Restore device ID in session
 
         if not device:
             logout_user()
@@ -335,10 +351,10 @@ def enforce_device_permissions():
             flash("This device was rejected. Access denied.", "danger")
             return redirect(url_for('login'))
 
-        # Block access to device management features from unapproved devices
         restricted_endpoints = {
-            'profile', 'revoke_device', 'approve_device', 'remove_profile_image',
-            'update_profile_image', 'change_user_details', 'delete_profile'
+            'profile', 'revoke_device', 'approve_device',
+            'remove_profile_image', 'update_profile_image',
+            'change_user_details', 'delete_profile'
         }
 
         if device.is_approved is not True and request.endpoint in restricted_endpoints:
