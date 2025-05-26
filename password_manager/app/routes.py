@@ -1023,6 +1023,25 @@ def export_passwords():
         app.logger.error(f'Export error: {str(e)}')
         return 'error Failed to generate export file. Please try again.', 500
 
+@app.route('/delete_device/<int:device_id>', methods=['POST'])
+@login_required
+def delete_device(device_id):
+    device = Device.query.filter_by(id=device_id, user_id=current_user.id).first()
+
+    if not device:
+        flash("Device not found.", "danger")
+        return redirect(url_for('profile'))
+
+    if not device.is_rejected:
+        flash("Only rejected devices can be deleted.", "warning")
+        return redirect(url_for('profile'))
+
+    db.session.delete(device)
+    db.session.commit()
+    flash("Device deleted successfully.", "success")
+    return redirect(url_for('profile'))
+
+
 @app.route('/.well-known/appspecific/com.chrome.devtools.json')
 def chrome_devtools_stub():
     return '', 204  # No content
