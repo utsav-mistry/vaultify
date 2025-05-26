@@ -21,8 +21,6 @@ import csv
 import os
 import json
 import io
-from datetime import timezone, timedelta
-from pytz import timezone, utc
 from openpyxl import load_workbook
 
 OTP_EXPIRATION_TIME = timedelta(minutes=5)
@@ -257,7 +255,9 @@ def profile():
 
     # Fetch and convert logs
     logs = Log.query.filter_by(user_id=current_user.id).order_by(Log.timestamp.desc()).all()
-    IST = timezone('Asia/Kolkata')
+
+    # Define IST using standard library
+    IST = timezone(timedelta(hours=5, minutes=30))
 
     for log in logs:
         if log.timestamp:
