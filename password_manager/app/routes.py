@@ -40,13 +40,11 @@ def log_device(user):
     ip = get_client_ip()
     ua = get_user_agent()
 
-    # Fallback logic for device name
     if '(' in ua:
         device_name = ua.split('(')[1].split(')')[0]
     else:
         device_name = 'Unknown Device'
 
-    # Check if same device already exists
     existing_device = Device.query.filter_by(
         user_id=user.id,
         ip_address=ip,
@@ -56,17 +54,22 @@ def log_device(user):
     if existing_device:
         existing_device.last_used = datetime.utcnow()
     else:
+        # Check if this is the first device
+        existing_devices = Device.query.filter_by(user_id=user.id).count()
         new_device = Device(
             user_id=user.id,
             device_name=device_name,
             ip_address=ip,
             user_agent=ua,
-            is_approved=False
+            is_approved=(existing_devices == 0),  # auto-approve if first
+            is_rejected=False
         )
         db.session.add(new_device)
+        # Track this session's device
+        db.session.flush()
+        session['device_id'] = new_device.id
 
     db.session.commit()
-
 
 @app.route("/")
 @app.route("/index")
@@ -275,14 +278,25 @@ def profile():
 @login_required
 def approve_device(device_id):
     device = Device.query.filter_by(id=device_id, user_id=current_user.id).first()
-    if device:
-        device.is_approved = True
-        device.is_rejected = False
-        db.session.commit()
-        flash("Device approved.", "success")
-    else:
+
+    if not device:
         flash("Device not found.", "danger")
+        return redirect(url_for('profile'))
+
+    if device.is_approved:
+        flash("Device is already approved.", "info")
+        return redirect(url_for('profile'))
+
+    if device.is_rejected:
+        flash("This device was rejected. You cannot approve it again.", "warning")
+        return redirect(url_for('profile'))
+
+    device.is_approved = True
+    device.is_rejected = False
+    db.session.commit()
+    flash("Device approved.", "success")
     return redirect(url_for('profile'))
+
 
 @app.before_request
 def enforce_device_approval():
@@ -303,19 +317,34 @@ def enforce_device_approval():
 @app.route('/revoke_device/<int:device_id>', methods=['POST'])
 @login_required
 def revoke_device(device_id):
-    if device_id == session.get('device_id'):
-        flash("You cannot revoke your current active device.", "warning")
+    device = Device.query.filter_by(id=device_id, user_id=current_user.id).first()
+    
+    if not device:
+        flash("Device not found.", "danger")
         return redirect(url_for('profile'))
 
-    device = Device.query.filter_by(id=device_id, user_id=current_user.id).first()
-    if device:
-        device.is_approved = False
-        device.is_rejected = True
-        db.session.commit()
-        flash("Device access revoked.", "success")
-    else:
-        flash("Device not found.", "danger")
+    all_devices = Device.query.filter_by(user_id=current_user.id, is_approved=True).all()
+
+    # If this is the only approved device, block revocation
+    if len(all_devices) == 1 and all_devices[0].id == device_id:
+        flash("You cannot revoke your only approved device.", "warning")
+        return redirect(url_for('profile'))
+
+    # Mark as rejected
+    device.is_approved = False
+    device.is_rejected = True
+    db.session.commit()
+    flash("Device access revoked.", "success")
+
+    # If current session's device, log out
+    if device_id == session.get('device_id'):
+        logout_user()
+        session.pop('device_id', None)
+        flash("This device has been revoked. Logging out.", "info")
+        return redirect(url_for('index'))
+
     return redirect(url_for('profile'))
+
 
 
 @app.route('/verify_otp', methods=['GET', 'POST'])
