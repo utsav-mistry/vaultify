@@ -256,7 +256,7 @@ def profile():
 
     # Fetch and convert logs
     logs = Log.query.filter_by(user_id=current_user.id).order_by(Log.timestamp.desc()).all()
-    IST = timezone(timedelta(hours=5, minutes=30))
+    IST = timezone('Asia/Kolkata')
 
     for log in logs:
         if log.timestamp:
