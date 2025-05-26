@@ -61,7 +61,7 @@ def log_device(user):
             device_name=device_name,
             ip_address=ip,
             user_agent=ua,
-            is_approved=(existing_devices == 0),  # auto-approve if first
+            is_approved = True if existing_devices == 0 else None, # auto-approve if first
             is_rejected=False
         )
         db.session.add(new_device)
@@ -308,20 +308,44 @@ def approve_device(device_id):
 
 
 @app.before_request
-def enforce_device_approval():
-    # Skip for static files and public routes
-    if request.endpoint in ['static', 'index', 'auth', 'logout']:
+def enforce_device_permissions():
+    # Routes always allowed
+    safe_endpoints = {
+        'static', 'index', 'login', 'logout', 'register', 'verify_otp',
+        'forgot_password', 'reset_password', 'dashboard',
+        'add_password', 'edit_password', 'delete_password',
+        'import_passwords', 'export_passwords', 'process_file'
+    }
+
+    if request.endpoint in safe_endpoints or (request.endpoint or '').startswith('get_profile_image'):
         return
 
     if current_user.is_authenticated:
         device_id = session.get('device_id')
-        if device_id:
-            device = Device.query.filter_by(id=device_id, user_id=current_user.id).first()
-            if not device or not device.is_approved:
-                logout_user()
-                session.pop('device_id', None)  # Clean up session
-                flash("Access from this device has been revoked.", "danger")
-                return redirect(url_for('auth'))
+        device = Device.query.filter_by(id=device_id, user_id=current_user.id).first()
+
+        if not device:
+            logout_user()
+            session.pop('device_id', None)
+            flash("Device not recognized.", "danger")
+            return redirect(url_for('login'))
+
+        if device.is_rejected:
+            logout_user()
+            session.pop('device_id', None)
+            flash("This device was rejected. Access denied.", "danger")
+            return redirect(url_for('login'))
+
+        # Block access to device management features from unapproved devices
+        restricted_endpoints = {
+            'profile', 'revoke_device', 'approve_device', 'remove_profile_image',
+            'update_profile_image', 'change_user_details', 'delete_profile'
+        }
+
+        if device.is_approved is not True and request.endpoint in restricted_endpoints:
+            flash("You are using an unapproved device. Access denied for this action.", "warning")
+            return redirect(url_for('dashboard'))
+
 
 @app.route('/revoke_device/<int:device_id>', methods=['POST'])
 @login_required
