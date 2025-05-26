@@ -21,6 +21,7 @@ import csv
 import os
 import json
 import io
+from pytz import timezone, utc
 from openpyxl import load_workbook
 
 OTP_EXPIRATION_TIME = timedelta(minutes=5)
@@ -235,16 +236,18 @@ def delete_password(password_id):
     db.session.commit()
     return redirect(url_for('dashboard'))
 
-from pytz import timezone, utc
-from datetime import datetime
+
+
 
 
 @app.route('/profile')
 @login_required
 def profile():
+    # Query activity logs
     query = text("SELECT * FROM logs WHERE user_id = :user_id ORDER BY timestamp DESC")
     logs = db.session.execute(query, {'user_id': current_user.id}).fetchall()
 
+    # Convert timestamps to IST
     ist = timezone('Asia/Kolkata')
     converted_logs = []
     for row in logs:
@@ -252,27 +255,29 @@ def profile():
         timestamp = log_dict.get('timestamp')
         if timestamp and timestamp.tzinfo is None:
             timestamp = utc.localize(timestamp)
-        log_dict['timestamp'] = timestamp.astimezone(ist).strftime('%Y-%m-%d %H:%M:%S')
+        if timestamp:
+            log_dict['timestamp'] = timestamp.astimezone(ist).strftime('%Y-%m-%d %H:%M:%S')
         converted_logs.append(log_dict)
 
+    # Fetch all devices for the user
     devices = Device.query.filter_by(user_id=current_user.id).all()
-
-    # Determine current session's IP and user-agent
-    current_ip = request.remote_addr
-    current_ua = request.headers.get('User-Agent')
+    current_device_id = session.get('device_id')
 
     for device in devices:
+        # Set device type and formatted string
         device.device_type = get_device_type(device.user_agent)
         device.formatted_info = format_user_agent(device.user_agent)
-        device.is_current = (device.ip_address == current_ip and device.user_agent == current_ua)
 
-    # Convert last_used to IST
-        if device.last_used and device.last_used.tzinfo is None:
-            device.last_used = utc.localize(device.last_used)
+        # Mark current device based on session-stored device ID
+        device.is_current = (device.id == current_device_id)
+
+        # Convert last_used timestamp to IST if necessary
         if device.last_used:
+            if device.last_used.tzinfo is None:
+                device.last_used = utc.localize(device.last_used)
             device.last_used = device.last_used.astimezone(ist)
-
     return render_template('profile.html', logs=converted_logs, devices=devices)
+
 
 @app.route('/approve_device/<int:device_id>', methods=['POST'])
 @login_required
