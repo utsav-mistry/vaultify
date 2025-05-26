@@ -7,7 +7,7 @@ from app.models import User, Password, Device, Log
 from app.forms import RegistrationForm, LoginForm, PasswordForm
 from app.utils import generate_aes_key, aes_encrypt, aes_decrypt, generate_otp, send_otp_email, get_device_type, format_user_agent
 from sqlalchemy import text, exc
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from PIL import Image
 from io import BytesIO
 from reportlab.lib.pagesizes import letter
