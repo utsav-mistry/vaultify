@@ -3,7 +3,7 @@ from flask_login import login_user, current_user, logout_user, login_required
 from werkzeug.utils import secure_filename
 from werkzeug.exceptions import BadRequest
 from app import app, db, bcrypt
-from app.models import User, Password, Device
+from app.models import User, Password, Device, Log
 from app.forms import RegistrationForm, LoginForm, PasswordForm
 from app.utils import generate_aes_key, aes_encrypt, aes_decrypt, generate_otp, send_otp_email, get_device_type, format_user_agent
 from sqlalchemy import text, exc
