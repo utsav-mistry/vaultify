@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useMessage } from '../contexts/MessageContext';
+import { useAuth } from '../contexts/AuthContext';
 import { CopyToClipboard } from 'react-copy-to-clipboard';
 import { confirmAlert } from 'react-confirm-alert';
 import 'react-confirm-alert/src/react-confirm-alert.css';
@@ -15,6 +16,7 @@ if (!axios.defaults.baseURL) {
 
 const Dashboard = () => {
     const navigate = useNavigate();
+    const { checkPendingDevices } = useAuth();
     const [passwords, setPasswords] = useState([]);
     const [loading, setLoading] = useState(true);
     const [searchQuery, setSearchQuery] = useState('');
@@ -49,7 +51,21 @@ const Dashboard = () => {
     useEffect(() => {
         fetchPasswords();
         fetchStats();
+        checkForPendingDevices();
     }, []);
+
+    // Check for pending devices that need approval
+    const checkForPendingDevices = async () => {
+        try {
+            const result = await checkPendingDevices();
+            if (result.success && result.device) {
+                // Show notification about pending device
+                showSuccess(`New device detected: ${result.device.device_name}. Please approve it in the Devices section.`);
+            }
+        } catch (error) {
+            console.error('Error checking pending devices:', error);
+        }
+    };
 
     // Debounced search logic
     useEffect(() => {

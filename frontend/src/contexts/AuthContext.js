@@ -105,6 +105,29 @@ export const AuthProvider = ({ children }) => {
         } catch (error) {
             console.error('AuthContext: Login error:', error.response?.data || error);
 
+            // Handle device approval required
+            if (error.response?.status === 403 && error.response?.data?.requiresApproval) {
+                const message = error.response.data.error;
+                showMessage(message, 'warning');
+                return {
+                    success: false,
+                    error: message,
+                    requiresApproval: true,
+                    deviceId: error.response.data.deviceId
+                };
+            }
+
+            // Handle device rejected
+            if (error.response?.status === 403 && error.response?.data?.deviceRejected) {
+                const message = error.response.data.error;
+                showMessage(message, 'error');
+                return {
+                    success: false,
+                    error: message,
+                    deviceRejected: true
+                };
+            }
+
             const message = error.response?.data?.error || 'Login failed';
             showMessage(message, 'error');
             return { success: false, error: message };
@@ -183,6 +206,45 @@ export const AuthProvider = ({ children }) => {
         }
     };
 
+    // Check for pending devices
+    const checkPendingDevices = async () => {
+        try {
+            const response = await axios.get('/api/devices/pending');
+            return { success: true, device: response.data.device };
+        } catch (error) {
+            if (error.response?.status === 404) {
+                return { success: true, device: null };
+            }
+            return { success: false, error: error.response?.data?.error || 'Failed to check pending devices' };
+        }
+    };
+
+    // Approve device
+    const approveDevice = async (deviceId) => {
+        try {
+            const response = await axios.post(`/api/devices/${deviceId}/approve`);
+            showMessage('Device approved successfully', 'success');
+            return { success: true };
+        } catch (error) {
+            const message = error.response?.data?.error || 'Failed to approve device';
+            showMessage(message, 'error');
+            return { success: false, error: message };
+        }
+    };
+
+    // Reject device
+    const rejectDevice = async (deviceId) => {
+        try {
+            const response = await axios.post(`/api/devices/${deviceId}/reject`);
+            showMessage('Device rejected successfully', 'success');
+            return { success: true };
+        } catch (error) {
+            const message = error.response?.data?.error || 'Failed to reject device';
+            showMessage(message, 'error');
+            return { success: false, error: message };
+        }
+    };
+
     const value = {
         user,
         loading,
@@ -193,7 +255,10 @@ export const AuthProvider = ({ children }) => {
         forgotPassword,
         resetPassword,
         updateProfile,
-        deleteAccount
+        deleteAccount,
+        checkPendingDevices,
+        approveDevice,
+        rejectDevice
     };
 
     return (

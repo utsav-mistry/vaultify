@@ -37,6 +37,18 @@ const Login = () => {
         navigate('/dashboard');
       } else {
         console.log('Login failed:', result.error);
+        
+        // Handle device approval required
+        if (result.requiresApproval) {
+          showMessage('Device approval required. Please check your other devices to approve this login.', 'warning');
+          // You could redirect to a device approval page or show a modal
+          // For now, we'll just show the message
+        }
+        
+        // Handle device rejected
+        if (result.deviceRejected) {
+          showMessage('This device has been rejected. Please use another device or contact support.', 'error');
+        }
       }
     } catch (error) {
       console.error('Login error:', error);

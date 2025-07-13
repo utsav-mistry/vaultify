@@ -132,7 +132,12 @@ router.post('/verify-otp', [
             });
 
         if (deviceError) {
-            console.error('Device creation error:', deviceError);
+            // Check if this is a duplicate constraint violation
+            if (deviceError.code === '23505') {
+                console.log('Primary device already exists for user, continuing with registration');
+            } else {
+                console.error('Device creation error:', deviceError);
+            }
         }
 
         // Log registration
@@ -233,14 +238,31 @@ router.post('/login', [
             return res.status(401).json({ error: 'Invalid credentials' });
         }
 
-        // Simplified device handling - auto-approve devices for now
+        // Device handling logic - approve first device, require approval for others
         const userAgent = req.headers['user-agent'];
         const ipAddress = req.ip || req.connection.remoteAddress;
 
         console.log('Login: Checking device for user:', user.id, 'IP:', ipAddress, 'User-Agent:', userAgent);
 
-        // Check if device exists
-        const { data: device, error: deviceError } = await supabase
+        // First, check if this is the user's first device
+        const { data: existingDevices, error: devicesError } = await supabase
+            .from('device')
+            .select('*')
+            .eq('user_id', user.id);
+
+        if (devicesError) {
+            console.error('Failed to fetch existing devices:', devicesError);
+            return res.status(500).json({ error: 'Device verification failed' });
+        }
+
+        const isFirstDevice = existingDevices.length === 0;
+
+        // Check if this specific device exists (more robust detection to prevent duplicates)
+        let device = null;
+        let deviceError = null;
+
+        // First try exact match (user_agent + ip_address)
+        const { data: exactDevice, error: exactError } = await supabase
             .from('device')
             .select('*')
             .eq('user_id', user.id)
@@ -248,12 +270,44 @@ router.post('/login', [
             .eq('ip_address', ipAddress)
             .single();
 
-        console.log('Login: Device lookup result:', { device, deviceError });
+        if (!exactError && exactDevice) {
+            device = exactDevice;
+            console.log('Login: Found exact device match:', device.id);
+        } else {
+            // If no exact match, check for similar devices (same user_agent but different IP)
+            // This handles cases where IP changes but it's the same device (e.g., mobile network, VPN)
+            const { data: similarDevices, error: similarError } = await supabase
+                .from('device')
+                .select('*')
+                .eq('user_id', user.id)
+                .eq('user_agent', userAgent)
+                .order('created_at', { ascending: false });
+
+            if (!similarError && similarDevices && similarDevices.length > 0) {
+                // Found a device with same user_agent, use the most recent one
+                device = similarDevices[0];
+                console.log('Login: Found similar device (same user_agent):', device.id);
+
+                // Update the IP address to the current one
+                await supabase
+                    .from('device')
+                    .update({ ip_address: ipAddress })
+                    .eq('id', device.id);
+                console.log('Login: Updated device IP address to:', ipAddress);
+            } else {
+                deviceError = 'Device not found';
+            }
+        }
+
+        console.log('Login: Device lookup result:', { device, deviceError, isFirstDevice });
 
         let currentDevice = device;
 
         if (deviceError || !device) {
-            // Create new device record with auto-approval
+            // This is a new device
+            const shouldAutoApprove = isFirstDevice;
+
+            // Try to create new device, but handle potential duplicate constraint violations
             const { data: newDevice, error: newDeviceError } = await supabase
                 .from('device')
                 .insert({
@@ -261,31 +315,78 @@ router.post('/login', [
                     device_name: getDeviceName(userAgent),
                     ip_address: ipAddress,
                     user_agent: userAgent,
-                    is_approved: true, // Auto-approve new devices
+                    is_approved: shouldAutoApprove ? true : null, // Auto-approve only first device
                     is_rejected: false
                 })
                 .select()
                 .single();
 
             if (newDeviceError) {
-                console.error('Failed to create device record:', newDeviceError);
-                // Continue with login even if device creation fails
+                // Check if this is a duplicate constraint violation
+                if (newDeviceError.code === '23505') { // PostgreSQL unique constraint violation
+                    console.log('Device already exists, attempting to find existing device');
+
+                    // Try to find the existing device
+                    const { data: existingDevice, error: findError } = await supabase
+                        .from('device')
+                        .select('*')
+                        .eq('user_id', user.id)
+                        .eq('user_agent', userAgent)
+                        .single();
+
+                    if (!findError && existingDevice) {
+                        // Use the existing device
+                        currentDevice = existingDevice;
+                        console.log('Login: Using existing device:', existingDevice.id);
+
+                        // Update IP address if it changed
+                        if (existingDevice.ip_address !== ipAddress) {
+                            await supabase
+                                .from('device')
+                                .update({ ip_address: ipAddress })
+                                .eq('id', existingDevice.id);
+                            console.log('Login: Updated device IP address to:', ipAddress);
+                        }
+                    } else {
+                        console.error('Failed to find existing device after constraint violation:', findError);
+                        return res.status(500).json({ error: 'Device registration failed' });
+                    }
+                } else {
+                    console.error('Failed to create device record:', newDeviceError);
+                    return res.status(500).json({ error: 'Device registration failed' });
+                }
             } else {
                 currentDevice = newDevice;
-                console.log('Login: Created new auto-approved device:', newDevice.id);
-            }
-        } else {
-            // Update existing device to approved if it was pending
-            if (device.is_approved === null) {
-                const { error: updateError } = await supabase
-                    .from('device')
-                    .update({ is_approved: true })
-                    .eq('id', device.id);
+                console.log('Login: Created new device:', newDevice.id, 'Auto-approved:', shouldAutoApprove);
 
-                if (!updateError) {
-                    console.log('Login: Auto-approved existing device:', device.id);
+                // If this is not the first device, block login and require approval
+                if (!shouldAutoApprove) {
+                    return res.status(403).json({
+                        error: 'New device detected. Please approve this device from another authorized device.',
+                        requiresApproval: true,
+                        deviceId: newDevice.id
+                    });
                 }
             }
+        } else {
+            // Device exists, check if it's approved
+            if (device.is_approved === false || device.is_rejected === true) {
+                return res.status(403).json({
+                    error: 'This device has been rejected. Please use another device or contact support.',
+                    deviceRejected: true
+                });
+            }
+
+            if (device.is_approved === null) {
+                return res.status(403).json({
+                    error: 'This device is pending approval. Please approve it from another authorized device.',
+                    requiresApproval: true,
+                    deviceId: device.id
+                });
+            }
+
+            // Device is approved, proceed with login
+            currentDevice = device;
         }
 
         console.log('Login: Device handling complete, proceeding with login for user:', user.id);
