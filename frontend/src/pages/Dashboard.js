@@ -67,6 +67,33 @@ const Dashboard = () => {
         }
     };
 
+    // Temporary test function to debug device issues
+    const testDeviceEndpoints = async () => {
+        try {
+            console.log('Testing device endpoints...');
+
+            // Test endpoint without device approval
+            const noDeviceResponse = await axios.get('/api/passwords/test-no-device');
+            console.log('No device approval test:', noDeviceResponse.data);
+
+            // Test endpoint to check user devices
+            const devicesResponse = await axios.get('/api/passwords/test-devices');
+            console.log('User devices test:', devicesResponse.data);
+
+            // Test device approval endpoint
+            const deviceApprovalResponse = await axios.get('/api/passwords/test-device');
+            console.log('Device approval test:', deviceApprovalResponse.data);
+
+        } catch (error) {
+            console.error('Device endpoint test error:', error);
+            console.error('Error details:', {
+                message: error.message,
+                response: error.response?.data,
+                status: error.response?.status
+            });
+        }
+    };
+
     // Debounced search logic
     useEffect(() => {
         if (debounceTimeout.current) clearTimeout(debounceTimeout.current);

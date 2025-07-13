@@ -43,6 +43,10 @@ const checkDeviceApproval = async (req, res, next) => {
         const userAgent = req.headers['user-agent'];
         const ipAddress = req.ip || req.connection.remoteAddress;
 
+        console.log('Device approval check - User ID:', user.id);
+        console.log('Device approval check - User Agent:', userAgent);
+        console.log('Device approval check - IP Address:', ipAddress);
+
         // Use the same robust device detection logic as in auth routes
         let device = null;
 
@@ -55,8 +59,11 @@ const checkDeviceApproval = async (req, res, next) => {
             .eq('ip_address', ipAddress)
             .single();
 
+        console.log('Device approval check - Exact match result:', { exactDevice, exactError });
+
         if (!exactError && exactDevice) {
             device = exactDevice;
+            console.log('Device approval check - Found exact device match:', device.id);
         } else {
             // If no exact match, check for similar devices (same user_agent but different IP)
             const { data: similarDevices, error: similarError } = await supabase
@@ -66,23 +73,41 @@ const checkDeviceApproval = async (req, res, next) => {
                 .eq('user_agent', userAgent)
                 .order('created_at', { ascending: false });
 
+            console.log('Device approval check - Similar devices result:', { similarDevices, similarError });
+
             if (!similarError && similarDevices && similarDevices.length > 0) {
                 device = similarDevices[0];
+                console.log('Device approval check - Found similar device:', device.id);
 
                 // Update the IP address to the current one
                 await supabase
                     .from('device')
                     .update({ ip_address: ipAddress })
                     .eq('id', device.id);
+                console.log('Device approval check - Updated device IP to:', ipAddress);
             }
         }
 
         if (!device) {
-            // Device not found - this should not happen if user logged in successfully
-            // The device should have been created during login
+            // Device not found - let's check what devices exist for this user
+            const { data: allDevices, error: allDevicesError } = await supabase
+                .from('device')
+                .select('*')
+                .eq('user_id', user.id);
+
+            console.log('Device approval check - All devices for user:', allDevices);
+            console.log('Device approval check - All devices error:', allDevicesError);
+
             console.error('Device not found for authenticated user:', user.id);
             return res.status(403).json({ error: 'Device not found. Please log in again.' });
         }
+
+        console.log('Device approval check - Device found:', {
+            id: device.id,
+            device_name: device.device_name,
+            is_approved: device.is_approved,
+            is_rejected: device.is_rejected
+        });
 
         if (device.is_rejected) {
             return res.status(403).json({ error: 'Device access denied' });

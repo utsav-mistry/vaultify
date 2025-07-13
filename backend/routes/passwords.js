@@ -3,13 +3,59 @@ const { body, validationResult } = require('express-validator');
 const { authenticateToken, checkDeviceApproval, logAction } = require('../middleware/auth');
 const { aesEncrypt, aesDecrypt } = require('../utils/crypto');
 const DatabaseService = require('../services/database');
+const supabase = require('../utils/supabaseClient');
 
 const router = express.Router();
 
 // Apply authentication and device approval middleware to all routes
 router.use(authenticateToken);
-router.use(checkDeviceApproval);
 router.use(logAction);
+
+// Test endpoint without device approval
+router.get('/test-no-device', authenticateToken, async (req, res) => {
+    try {
+        res.json({
+            message: 'Authentication working without device approval',
+            user: {
+                id: req.user.id,
+                username: req.user.username,
+                email: req.user.email
+            }
+        });
+    } catch (error) {
+        console.error('Test no device error:', error);
+        res.status(500).json({ error: 'Test failed' });
+    }
+});
+
+// Test endpoint to check user devices
+router.get('/test-devices', authenticateToken, async (req, res) => {
+    try {
+        const { data: devices, error } = await supabase
+            .from('device')
+            .select('*')
+            .eq('user_id', req.user.id);
+
+        res.json({
+            message: 'User devices',
+            user: {
+                id: req.user.id,
+                username: req.user.username,
+                email: req.user.email
+            },
+            devices: devices || [],
+            deviceCount: devices ? devices.length : 0,
+            currentUserAgent: req.headers['user-agent'],
+            currentIP: req.ip || req.connection.remoteAddress
+        });
+    } catch (error) {
+        console.error('Test devices error:', error);
+        res.status(500).json({ error: 'Test failed' });
+    }
+});
+
+// Apply device approval middleware to all other routes
+router.use(checkDeviceApproval);
 
 // Get all passwords for user
 router.get('/', async (req, res) => {
