@@ -1,0 +1,196 @@
+/* Base Styles */
+@import './variables.css';
+
+/* Reset */
+*,
+*::before,
+*::after {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+html {
+    font-size: 16px;
+    scroll-behavior: smooth;
+    -webkit-text-size-adjust: 100%;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    overflow-y: scroll !important;
+}
+
+body {
+    font-family: var(--font-family);
+    font-size: var(--font-size-base);
+    font-weight: var(--font-weight-normal);
+    line-height: var(--line-height-normal);
+    color: var(--text-primary);
+    background-color: var(--bg-primary);
+    transition: background-color var(--transition-base), color var(--transition-base);
+    overflow-y: auto !important;
+}
+
+/* Typography */
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+    font-family: var(--font-family);
+    font-weight: var(--font-weight-bold);
+    line-height: var(--line-height-tight);
+    color: var(--text-primary);
+    margin-bottom: var(--space-4);
+    letter-spacing: -0.025em;
+}
+
+h1 {
+    font-size: var(--font-size-5xl);
+    font-weight: var(--font-weight-bold);
+}
+
+h2 {
+    font-size: var(--font-size-4xl);
+    font-weight: var(--font-weight-semibold);
+}
+
+h3 {
+    font-size: var(--font-size-3xl);
+    font-weight: var(--font-weight-semibold);
+}
+
+h4 {
+    font-size: var(--font-size-2xl);
+    font-weight: var(--font-weight-semibold);
+}
+
+h5 {
+    font-size: var(--font-size-xl);
+    font-weight: var(--font-weight-semibold);
+}
+
+h6 {
+    font-size: var(--font-size-lg);
+    font-weight: var(--font-weight-semibold);
+}
+
+p {
+    margin-bottom: var(--space-4);
+    color: var(--text-secondary);
+    line-height: var(--line-height-relaxed);
+}
+
+/* Links */
+a {
+    color: var(--color-primary);
+    text-decoration: none;
+    transition: color var(--transition-fast);
+    border-bottom: 1px solid transparent;
+}
+
+a:hover {
+    color: var(--color-primary-hover);
+    border-bottom-color: currentColor;
+}
+
+/* Ensure button links don't get text decoration */
+a.btn,
+a[class*="btn"] {
+    text-decoration: none !important;
+}
+
+a.btn:hover,
+a[class*="btn"]:hover {
+    text-decoration: none !important;
+}
+
+/* Remove underlines from buttons and specific elements */
+.btn,
+.btn *,
+button,
+button *,
+.theme-toggle,
+.sidebar-toggle,
+.logout-btn,
+.nav-link,
+.home-nav-link,
+a.btn,
+a[class*="btn"] {
+    text-decoration: none !important;
+}
+
+.btn:hover,
+.btn:hover *,
+button:hover,
+button:hover *,
+.theme-toggle:hover,
+.sidebar-toggle:hover,
+.logout-btn:hover,
+.nav-link:hover,
+.home-nav-link:hover,
+a.btn:hover,
+a[class*="btn"]:hover {
+    text-decoration: none !important;
+}
+
+/* Lists */
+ul,
+ol {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+/* Images */
+img {
+    max-width: 100%;
+    height: auto;
+    display: block;
+}
+
+/* Form Elements */
+button {
+    font-family: inherit;
+    font-size: inherit;
+    line-height: inherit;
+}
+
+input,
+textarea,
+select {
+    font-family: inherit;
+    font-size: inherit;
+    line-height: inherit;
+}
+
+/* Focus Styles */
+:focus-visible {
+    outline: 2px solid var(--border-focus);
+    outline-offset: 2px;
+}
+
+/* Selection */
+::selection {
+    background-color: var(--color-primary);
+    color: var(--text-inverse);
+}
+
+/* Global Scrollbar - exclude search suggestions */
+*:not(.search-suggestions)::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+*:not(.search-suggestions)::-webkit-scrollbar-track {
+    background: var(--bg-elevated);
+}
+
+*:not(.search-suggestions)::-webkit-scrollbar-thumb {
+    background: var(--border-primary);
+    border-radius: var(--radius-full);
+}
+
+*:not(.search-suggestions)::-webkit-scrollbar-thumb:hover {
+    background: var(--border-secondary);
+}

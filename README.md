@@ -1,60 +1,66 @@
-# Vaultify - Secure Password Manager  
+# Vaultify - Secure Password Manager
 
-## Introduction  
-In today's digital era, managing passwords securely is more important than ever. **Vaultify** is a modern, intuitive, and highly secure password manager that allows users to store and manage their credentials effortlessly. Built with a focus on security and usability, Vaultify ensures that users have easy access to their passwords while keeping them encrypted and protected.  
+A modern, secure password management application built with the MERN stack and Supabase.
 
-## Live Website  
-Start using Vaultify instantly by visiting:  
-[Vaultify - Secure Password Manager](https://vaultify-one.vercel.app)  
+## Overview
 
-## Why Choose Vaultify?  
-Vaultify is designed to provide **seamless security** without compromising on ease of use. Key highlights include:  
-- **End-to-End Security** – Protects passwords with strong encryption.  
-- **User-Friendly Interface** – Clean, intuitive, and responsive design.  
-- **Seamless Access** – No installation required, just open the website and start using it.  
-- **Profile Management** – Users can personalize their experience with profile images.  
-- **Password Recovery** – Built-in recovery feature to reset forgotten passwords.  
-- **Dark Mode** – Designed for better accessibility and eye comfort.  
+Vaultify provides secure password storage and management with AES-256 encryption, device management, and a professional pixelated UI design.
 
-## Features  
-Vaultify offers a range of features tailored for both security and convenience:  
-- **Secure Storage** – Store passwords safely with encryption mechanisms.  
-- **Multi-Platform Access** – Access your passwords from any device via a web browser.  
-- **User Authentication** – Secure login and registration process.  
-- **Profile Customization** – Upload profile pictures directly from your device.  
-- **Bootstrap-Powered UI** – A visually appealing and responsive design.  
-- **Dark Mode** – Optimized for night-time browsing and accessibility.  
-- **Flask-Based Backend** – Ensuring efficiency and reliability.  
-- **PostgreSQL Database** – Secure storage for user credentials.  
-- **Vercel Deployment** – Fast and scalable hosting solution.  
+## Current Release: 2.0.0
 
-## How It Works  
-Vaultify is designed for simplicity. Users only need to:  
-1. **Visit the website** – [https://vaultify-one.vercel.app](https://vaultify-one.vercel.app)  
-2. **Sign Up / Log In** – Create an account or log in with existing credentials.  
-3. **Store Passwords Securely** – Add and manage passwords with ease.  
-4. **Retrieve Passwords Anytime** – Access your stored credentials whenever needed.  
+**Vaultify 2.0.0 – Full Stack Migration & Pixelated Professional UI**
 
-## Technology Stack  
-Vaultify is built using industry-leading technologies:  
-- **Frontend:** HTML, CSS, JavaScript, Bootstrap  
-- **Backend:** Python (Flask)  
-- **Database:** PostgreSQL  
-- **Hosting & Deployment:** Vercel  
+### Major Changes
 
-## Security Measures  
-Security is at the core of Vaultify. Some of the key security implementations include:  
-- **Encrypted Storage** – Ensures user credentials are protected at all times.  
-- **Secure Authentication** – Passwords are hashed and never stored in plaintext.  
-- **Session Management** – Prevents unauthorized access to user accounts.  
-- **Environment Variable Protection** – Sensitive credentials are securely managed.  
+- **Complete Stack Migration**: Migrated from Flask/Jinja2 to MERN stack (MongoDB → Supabase)
+- **Modern Frontend**: React.js with Context API for state management
+- **Professional UI**: Minimal design with pixelated aesthetics and smooth animations
+- **Enhanced Security**: Improved JWT authentication and device management
+- **Theme System**: Light and dark mode with professional color palette
+- **Responsive Design**: Mobile-first approach with horizontal/vertical layouts
 
-## Future Enhancements  
-Vaultify is continuously evolving to offer even better security and usability. Planned features include:  
-- **Mobile App Version** – Expanding Vaultify to iOS and Android platforms.  
-- **Two-Factor Authentication (2FA)** – Enhancing security with an extra layer of protection.  
-- **Auto-Fill Integration** – Seamless password autofill for supported browsers.  
-- **Biometric Authentication** – Login via fingerprint or facial recognition (mobile).  
+### Technical Improvements
+
+- **Backend**: Node.js/Express with Supabase integration
+- **Frontend**: React with custom pixelated icons and animations
+- **Database**: Supabase PostgreSQL with existing data preservation
+- **Authentication**: Enhanced JWT system with device approval
+- **UI/UX**: Custom message system replacing toast alerts
+- **Performance**: Optimized loading with pixelated animations
+
+### New Features
+
+- **Pixelated Design System**: Custom SVG icons and loading animations
+- **Device Management**: Multi-device support with approval workflow
+- **Import/Export**: CSV, Excel, and JSON format support
+- **Professional Messaging**: Themed popup system synchronized with theme
+- **Version History**: Interactive timeline with release details
+
+## Features
+
+- **Secure Authentication**: JWT-based authentication with email verification
+- **Password Management**: Encrypted storage with AES-256 encryption
+- **Device Management**: Multi-device support with session control
+- **Import/Export**: Secure data portability
+- **Professional UI**: Minimal design with pixelated aesthetics
+- **Theme Support**: Light and dark mode
+- **Responsive Design**: Mobile and desktop optimized
+
+## Technology Stack
+
+- **Frontend**: React, Context API, CSS3
+- **Backend**: Node.js, Express, JWT
+- **Database**: Supabase (PostgreSQL)
+- **Encryption**: AES-256
+- **Email**: Nodemailer
+
+## Security
+
+- AES-256 encryption for password storage
+- JWT token authentication
+- Device session management
+- Secure password generation
+- Rate limiting and validation
 
 ## License
 
@@ -69,9 +75,3 @@ For more information, please refer to the official license:
 [Creative Commons Attribution-NonCommercial-NoDerivatives 4.0 International](https://creativecommons.org/licenses/by-nc-nd/4.0/)
 
 © 2025 Vaultify Inc. All rights reserved. 
-
-## Contact & Support  
-For any queries, feedback, or support, feel free to reach out. Vaultify aims to provide a secure and seamless password management experience for all users.  
-
-Start managing your passwords securely today with **Vaultify!**  
-**[Visit Now](https://vaultify-one.vercel.app)**  
