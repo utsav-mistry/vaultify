@@ -31,7 +31,8 @@ const Devices = () => {
 
     const fetchDevices = async () => {
         try {
-            const response = await fetch('/api/devices', {
+            const API_BASE_URL = process.env.REACT_APP_API_URL || 'https://vaultify-a88w.onrender.com';
+            const response = await fetch(`${API_BASE_URL}/api/devices`, {
                 headers: {
                     'Authorization': `Bearer ${localStorage.getItem('token')}`
                 }
@@ -56,7 +57,8 @@ const Devices = () => {
     const handleApproveDevice = async (deviceId) => {
         setActionLoading(deviceId);
         try {
-            const response = await fetch(`/api/devices/${deviceId}/approve`, {
+            const API_BASE_URL = process.env.REACT_APP_API_URL || 'https://vaultify-a88w.onrender.com';
+            const response = await fetch(`${API_BASE_URL}/api/devices/${deviceId}/approve`, {
                 method: 'POST',
                 headers: {
                     'Authorization': `Bearer ${localStorage.getItem('token')}`
@@ -80,7 +82,8 @@ const Devices = () => {
     const handleRejectDevice = async (deviceId) => {
         setActionLoading(deviceId);
         try {
-            const response = await fetch(`/api/devices/${deviceId}/reject`, {
+            const API_BASE_URL = process.env.REACT_APP_API_URL || 'https://vaultify-a88w.onrender.com';
+            const response = await fetch(`${API_BASE_URL}/api/devices/${deviceId}/reject`, {
                 method: 'POST',
                 headers: {
                     'Authorization': `Bearer ${localStorage.getItem('token')}`
@@ -108,7 +111,8 @@ const Devices = () => {
 
         setActionLoading(deviceId);
         try {
-            const response = await fetch(`/api/devices/${deviceId}`, {
+            const API_BASE_URL = process.env.REACT_APP_API_URL || 'https://vaultify-a88w.onrender.com';
+            const response = await fetch(`${API_BASE_URL}/api/devices/${deviceId}`, {
                 method: 'DELETE',
                 headers: {
                     'Authorization': `Bearer ${localStorage.getItem('token')}`
@@ -325,7 +329,7 @@ const Devices = () => {
                                                         <div className="pixel"></div>
                                                     </div>
                                                 ) : (
-                                                        <span>Approve</span>
+                                                    <span>Approve</span>
                                                 )}
                                             </button>
                                             <button

@@ -7,6 +7,12 @@ import Sidebar from '../components/Sidebar';
 
 import axios from 'axios';
 
+// Configure axios base URL if not already set
+if (!axios.defaults.baseURL) {
+    const API_BASE_URL = process.env.REACT_APP_API_URL || 'https://vaultify-a88w.onrender.com';
+    axios.defaults.baseURL = API_BASE_URL;
+}
+
 const ImportExport = () => {
     const { user } = useAuth();
     const { showMessage } = useMessage();
@@ -33,7 +39,8 @@ const ImportExport = () => {
     const handleExport = async (format) => {
         setExportLoading(true);
         try {
-            const response = await fetch(`/api/import-export/export/${format}`, {
+            const API_BASE_URL = process.env.REACT_APP_API_URL || 'https://vaultify-a88w.onrender.com';
+            const response = await fetch(`${API_BASE_URL}/api/import-export/export/${format}`, {
                 headers: {
                     'Authorization': `Bearer ${localStorage.getItem('token')}`
                 }
@@ -81,7 +88,8 @@ const ImportExport = () => {
             const formData = new FormData();
             formData.append('file', selectedFile);
 
-            const response = await fetch(`/api/import-export/import/${importFormat}`, {
+            const API_BASE_URL = process.env.REACT_APP_API_URL || 'https://vaultify-a88w.onrender.com';
+            const response = await fetch(`${API_BASE_URL}/api/import-export/import/${importFormat}`, {
                 method: 'POST',
                 headers: {
                     'Authorization': `Bearer ${localStorage.getItem('token')}`

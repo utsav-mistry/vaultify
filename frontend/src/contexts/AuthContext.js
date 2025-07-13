@@ -2,6 +2,10 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import axios from 'axios';
 import { useMessage } from './MessageContext';
 
+// Configure axios base URL
+const API_BASE_URL = process.env.REACT_APP_API_URL || 'https://vaultify-a88w.onrender.com';
+axios.defaults.baseURL = API_BASE_URL;
+
 const AuthContext = createContext();
 
 export const useAuth = () => {

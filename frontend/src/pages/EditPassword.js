@@ -40,7 +40,8 @@ const EditPassword = () => {
 
     const fetchPassword = async () => {
         try {
-            const response = await fetch(`/api/passwords/${id}`, {
+            const API_BASE_URL = process.env.REACT_APP_API_URL || 'https://vaultify-a88w.onrender.com';
+            const response = await fetch(`${API_BASE_URL}/api/passwords/${id}`, {
                 headers: {
                     'Authorization': `Bearer ${localStorage.getItem('token')}`
                 }
@@ -130,7 +131,8 @@ const EditPassword = () => {
 
         setSaving(true);
         try {
-            const response = await fetch(`/api/passwords/${id}`, {
+            const API_BASE_URL = process.env.REACT_APP_API_URL || 'https://vaultify-a88w.onrender.com';
+            const response = await fetch(`${API_BASE_URL}/api/passwords/${id}`, {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json',
@@ -160,7 +162,8 @@ const EditPassword = () => {
 
         setSaving(true);
         try {
-            const response = await fetch(`/api/passwords/${id}`, {
+            const API_BASE_URL = process.env.REACT_APP_API_URL || 'https://vaultify-a88w.onrender.com';
+            const response = await fetch(`${API_BASE_URL}/api/passwords/${id}`, {
                 method: 'DELETE',
                 headers: {
                     'Authorization': `Bearer ${localStorage.getItem('token')}`

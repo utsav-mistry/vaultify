@@ -35,7 +35,8 @@ const DeviceApproval = () => {
 
     const fetchPendingDevice = async () => {
         try {
-            const response = await fetch('/api/devices/pending', {
+            const API_BASE_URL = process.env.REACT_APP_API_URL || 'https://vaultify-a88w.onrender.com';
+            const response = await fetch(`${API_BASE_URL}/api/devices/pending`, {
                 headers: {
                     'Authorization': `Bearer ${localStorage.getItem('token')}`
                 }
@@ -64,7 +65,8 @@ const DeviceApproval = () => {
     const handleApprove = async () => {
         setActionLoading(true);
         try {
-            const response = await fetch(`/api/devices/${device.id}/approve`, {
+            const API_BASE_URL = process.env.REACT_APP_API_URL || 'https://vaultify-a88w.onrender.com';
+            const response = await fetch(`${API_BASE_URL}/api/devices/${device.id}/approve`, {
                 method: 'POST',
                 headers: {
                     'Authorization': `Bearer ${localStorage.getItem('token')}`
@@ -86,7 +88,8 @@ const DeviceApproval = () => {
     const handleReject = async () => {
         setActionLoading(true);
         try {
-            const response = await fetch(`/api/devices/${device.id}/reject`, {
+            const API_BASE_URL = process.env.REACT_APP_API_URL || 'https://vaultify-a88w.onrender.com';
+            const response = await fetch(`${API_BASE_URL}/api/devices/${device.id}/reject`, {
                 method: 'POST',
                 headers: {
                     'Authorization': `Bearer ${localStorage.getItem('token')}`

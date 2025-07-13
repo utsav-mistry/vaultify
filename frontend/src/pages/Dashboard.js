@@ -7,6 +7,12 @@ import 'react-confirm-alert/src/react-confirm-alert.css';
 import Sidebar from '../components/Sidebar';
 import axios from 'axios';
 
+// Configure axios base URL if not already set
+if (!axios.defaults.baseURL) {
+    const API_BASE_URL = process.env.REACT_APP_API_URL || 'https://vaultify-a88w.onrender.com';
+    axios.defaults.baseURL = API_BASE_URL;
+}
+
 const Dashboard = () => {
     const navigate = useNavigate();
     const [passwords, setPasswords] = useState([]);

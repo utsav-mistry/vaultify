@@ -129,7 +129,8 @@ const AddPassword = () => {
         setLoading(true);
 
         try {
-            const response = await fetch('/api/passwords', {
+            const API_BASE_URL = process.env.REACT_APP_API_URL || 'https://vaultify-a88w.onrender.com';
+            const response = await fetch(`${API_BASE_URL}/api/passwords`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
