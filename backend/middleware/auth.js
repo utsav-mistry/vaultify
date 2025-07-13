@@ -43,56 +43,45 @@ const checkDeviceApproval = async (req, res, next) => {
         const userAgent = req.headers['user-agent'];
         const ipAddress = req.ip || req.connection.remoteAddress;
 
-        // Find the device using Supabase
-        const { data: devices, error: deviceError } = await supabase
+        // Use the same robust device detection logic as in auth routes
+        let device = null;
+
+        // First try exact match (user_agent + ip_address)
+        const { data: exactDevice, error: exactError } = await supabase
             .from('device')
             .select('*')
             .eq('user_id', user.id)
             .eq('user_agent', userAgent)
             .eq('ip_address', ipAddress)
-            .limit(1);
+            .single();
 
-        if (deviceError) {
-            console.error('Device lookup error:', deviceError);
-            return res.status(500).json({ error: 'Device verification error' });
+        if (!exactError && exactDevice) {
+            device = exactDevice;
+        } else {
+            // If no exact match, check for similar devices (same user_agent but different IP)
+            const { data: similarDevices, error: similarError } = await supabase
+                .from('device')
+                .select('*')
+                .eq('user_id', user.id)
+                .eq('user_agent', userAgent)
+                .order('created_at', { ascending: false });
+
+            if (!similarError && similarDevices && similarDevices.length > 0) {
+                device = similarDevices[0];
+
+                // Update the IP address to the current one
+                await supabase
+                    .from('device')
+                    .update({ ip_address: ipAddress })
+                    .eq('id', device.id);
+            }
         }
 
-        let device = devices && devices.length > 0 ? devices[0] : null;
-
         if (!device) {
-            // Create new device record
-            const { data: newDevice, error: createError } = await supabase
-                .from('device')
-                .insert({
-                    user_id: user.id,
-                    device_name: getDeviceName(userAgent),
-                    ip_address: ipAddress,
-                    user_agent: userAgent,
-                    is_approved: null
-                })
-                .select()
-                .single();
-
-            if (createError) {
-                console.error('Device creation error:', createError);
-                return res.status(500).json({ error: 'Device verification error' });
-            }
-
-            // Log the new device
-            await supabase
-                .from('logs')
-                .insert({
-                    user_id: user.id,
-                    action: 'New device detected',
-                    details: `Device: ${newDevice.device_name}, IP: ${ipAddress}`,
-                    timestamp: new Date().toISOString()
-                });
-
-            return res.status(403).json({
-                error: 'Device approval required',
-                deviceId: newDevice.id,
-                deviceName: newDevice.device_name
-            });
+            // Device not found - this should not happen if user logged in successfully
+            // The device should have been created during login
+            console.error('Device not found for authenticated user:', user.id);
+            return res.status(403).json({ error: 'Device not found. Please log in again.' });
         }
 
         if (device.is_rejected) {

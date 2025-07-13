@@ -234,6 +234,12 @@ const Dashboard = () => {
             setStats(response.data);
         } catch (error) {
             console.error('Error fetching stats:', error);
+            console.error('Error details:', {
+                message: error.message,
+                response: error.response?.data,
+                status: error.response?.status
+            });
+            // Don't show error to user for stats, just log it
         }
     };
 

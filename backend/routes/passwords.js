@@ -197,10 +197,36 @@ router.get('/search/:query', async (req, res) => {
     }
 });
 
+// Test endpoint to check device approval
+router.get('/test-device', async (req, res) => {
+    try {
+        res.json({
+            message: 'Device approval working',
+            user: {
+                id: req.user.id,
+                username: req.user.username,
+                email: req.user.email
+            },
+            device: req.device ? {
+                id: req.device.id,
+                device_name: req.device.device_name,
+                is_approved: req.device.is_approved
+            } : null
+        });
+    } catch (error) {
+        console.error('Test device error:', error);
+        res.status(500).json({ error: 'Test failed' });
+    }
+});
+
 // Get password statistics
 router.get('/stats/overview', async (req, res) => {
     try {
+        console.log('Stats request - User ID:', req.user.id);
+        console.log('Stats request - User AES Key:', req.user.aes_key ? 'Present' : 'Missing');
+
         const passwords = await DatabaseService.getPasswords(req.user.id);
+        console.log('Stats request - Passwords fetched:', passwords.length);
 
         // Calculate statistics
         const totalPasswords = passwords.length;
@@ -213,13 +239,17 @@ router.get('/stats/overview', async (req, res) => {
             new Date(p.date_created) >= sevenDaysAgo
         ).length;
 
-        res.json({
+        const stats = {
             totalPasswords,
             uniqueWebsites,
             recentPasswords
-        });
+        };
+
+        console.log('Stats request - Calculated stats:', stats);
+        res.json(stats);
     } catch (error) {
         console.error('Get password stats error:', error);
+        console.error('Error stack:', error.stack);
         res.status(500).json({ error: 'Failed to fetch password statistics' });
     }
 });
