@@ -29,7 +29,7 @@ const Devices = () => {
         fetchDevices();
     }, []);
 
-    const { getDeviceUidHeader } = useAuth();
+    const { getDeviceUidHeader, forceLogoutAndClearDeviceUid } = useAuth();
 
     const fetchDevices = async () => {
         try {
@@ -134,6 +134,13 @@ const Devices = () => {
             });
 
             if (response.ok) {
+                // Check if the removed device is the current device
+                const removedDevice = devices.find(d => d.id === deviceId);
+                const currentDeviceUid = localStorage.getItem('device_uid');
+                if (removedDevice && removedDevice.device_uid === currentDeviceUid) {
+                    forceLogoutAndClearDeviceUid();
+                    return;
+                }
                 showMessage('Device removed successfully', 'success');
                 fetchDevices();
             } else {

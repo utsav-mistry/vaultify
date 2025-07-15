@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import axios from 'axios';
 import { useMessage } from './MessageContext';
+import { useNavigate } from 'react-router-dom';
 
 // Configure axios base URL
 const API_BASE_URL = process.env.REACT_APP_API_URL || 'https://vaultify-a88w.onrender.com';
@@ -20,6 +21,7 @@ export const AuthProvider = ({ children }) => {
     const [user, setUser] = useState(null);
     const [loading, setLoading] = useState(true);
     const { showMessage } = useMessage();
+    const navigate = useNavigate();
 
     const DEVICE_UID_KEY = 'device_uid';
 
@@ -211,6 +213,18 @@ export const AuthProvider = ({ children }) => {
         localStorage.removeItem('token');
         delete axios.defaults.headers.common['Authorization'];
         setUser(null);
+        showMessage('You have been logged out.', 'info');
+        navigate('/login');
+    };
+
+    // Force logout and clear device UID (for device removal)
+    const forceLogoutAndClearDeviceUid = () => {
+        localStorage.removeItem('token');
+        delete axios.defaults.headers.common['Authorization'];
+        setUser(null);
+        clearDeviceUid();
+        showMessage('This device has been removed and you have been logged out.', 'info');
+        navigate('/login');
     };
 
     // Forgot password
@@ -315,6 +329,7 @@ export const AuthProvider = ({ children }) => {
         verifyOTP,
         login,
         logout,
+        forceLogoutAndClearDeviceUid,
         forgotPassword,
         resetPassword,
         updateProfile,
