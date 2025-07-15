@@ -5,6 +5,7 @@ import { useTheme } from './contexts/ThemeContext';
 import Sidebar from './components/Sidebar';
 import Footer from './components/Footer';
 import HomeHeader from './components/HomeHeader';
+import WaitingForApproval from './components/WaitingForApproval';
 
 // Pages
 import Home from './pages/Home';
@@ -146,6 +147,7 @@ function App() {
                         <Route path="/terms-of-service" element={<TermsOfService />} />
                         <Route path="/version" element={<Version />} />
                         <Route path="/reactivate" element={<Reactivate />} />
+                        <Route path="/waiting-approval" element={<WaitingForApproval />} />
 
                         {/* Protected Routes */}
                         <Route path="/dashboard" element={

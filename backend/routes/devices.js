@@ -149,7 +149,7 @@ router.get('/', authenticateToken, async (req, res) => {
     }
 });
 
-// Get pending device for approval
+// Get pending devices for approval
 router.get('/pending', authenticateToken, async (req, res) => {
     const userId = req.user.id;
     try {
@@ -157,28 +157,23 @@ router.get('/pending', authenticateToken, async (req, res) => {
             .from('device')
             .select('*')
             .eq('user_id', userId)
-            .is('is_approved', null)
-            .is('is_rejected', null)
-            .order('id', { ascending: false })
-            .limit(1)
-            .single();
+            .or('is_approved.is.null,is_approved.eq.false')
+            .or('is_rejected.is.null,is_rejected.eq.false')
+            .order('id', { ascending: false });
 
         if (error) {
-            if (error.code === 'PGRST116') {
-                // No pending devices found
-                return res.status(404).json({
-                    message: 'No pending devices found',
-                    device: null
-                });
-            }
-            console.error('Fetch pending device error:', error);
-            return res.status(500).json({ error: 'Failed to fetch pending device' });
+            console.error('Fetch pending devices error:', error);
+            return res.status(500).json({ error: 'Failed to fetch pending devices' });
         }
 
-        res.json({ device: data });
+        if (!data || data.length === 0) {
+            return res.status(404).json({ message: 'No pending devices found', devices: [] });
+        }
+
+        res.json({ devices: data });
     } catch (err) {
-        console.error('Get pending device error:', err);
-        res.status(500).json({ error: 'Failed to fetch pending device' });
+        console.error('Get pending devices error:', err);
+        res.status(500).json({ error: 'Failed to fetch pending devices' });
     }
 });
 
