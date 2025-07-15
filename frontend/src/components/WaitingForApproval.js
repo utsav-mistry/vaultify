@@ -1,8 +1,18 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
+import { useAuth } from '../contexts/AuthContext';
+import { useNavigate } from 'react-router-dom';
+import { useMessage } from '../contexts/MessageContext';
+
+const POLL_INTERVAL = 4000; // 4 seconds
 
 const WaitingForApproval = () => {
     const [secondsLeft, setSecondsLeft] = useState(300); // 5 minutes
+    const { checkCurrentDeviceApprovalStatus } = useAuth();
+    const navigate = useNavigate();
+    const pollingRef = useRef();
+    const { showMessage } = useMessage();
 
+    // Countdown timer
     useEffect(() => {
         if (secondsLeft <= 0) return;
         const interval = setInterval(() => {
@@ -10,6 +20,37 @@ const WaitingForApproval = () => {
         }, 1000);
         return () => clearInterval(interval);
     }, [secondsLeft]);
+
+    // Poll for device approval
+    useEffect(() => {
+        if (secondsLeft <= 0) return;
+        pollingRef.current = setInterval(async () => {
+            try {
+                const result = await checkCurrentDeviceApprovalStatus();
+                // If device is approved, redirect
+                if (result.success && result.device && result.device.is_approved) {
+                    clearInterval(pollingRef.current);
+                    showMessage('Device approved! You now have access.', 'success');
+                    navigate('/dashboard', { replace: true });
+                }
+                // If device is rejected, force logout
+                if (result.success && result.device && result.device.is_rejected) {
+                    clearInterval(pollingRef.current);
+                    showMessage('This device was rejected. Please use another device or contact support.', 'error');
+                    navigate('/login', { replace: true });
+                }
+                // If device is deleted (not found), force logout
+                if (result.success && !result.device) {
+                    clearInterval(pollingRef.current);
+                    showMessage('This device was removed and you have been logged out.', 'error');
+                    navigate('/login', { replace: true });
+                }
+            } catch (e) {
+                // Ignore errors, keep polling
+            }
+        }, POLL_INTERVAL);
+        return () => clearInterval(pollingRef.current);
+    }, [checkCurrentDeviceApprovalStatus, navigate, secondsLeft, showMessage]);
 
     const minutes = Math.floor(secondsLeft / 60);
     const seconds = secondsLeft % 60;

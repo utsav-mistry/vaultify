@@ -211,20 +211,25 @@ export const AuthProvider = ({ children }) => {
     // Logout user
     const logout = () => {
         localStorage.removeItem('token');
+        localStorage.removeItem(DEVICE_UID_KEY);
         delete axios.defaults.headers.common['Authorization'];
+        delete axios.defaults.headers.common['x-device-uid'];
         setUser(null);
+        clearDeviceUid();
         showMessage('You have been logged out.', 'info');
-        navigate('/login');
+        navigate('/login', { replace: true });
     };
 
     // Force logout and clear device UID (for device removal)
     const forceLogoutAndClearDeviceUid = () => {
         localStorage.removeItem('token');
+        localStorage.removeItem(DEVICE_UID_KEY);
         delete axios.defaults.headers.common['Authorization'];
+        delete axios.defaults.headers.common['x-device-uid'];
         setUser(null);
         clearDeviceUid();
         showMessage('This device has been removed and you have been logged out.', 'info');
-        navigate('/login');
+        navigate('/login', { replace: true });
     };
 
     // Forgot password
@@ -322,6 +327,22 @@ export const AuthProvider = ({ children }) => {
         }
     };
 
+    // Securely check if the current device is approved
+    const checkCurrentDeviceApprovalStatus = async () => {
+        const deviceUid = localStorage.getItem(DEVICE_UID_KEY);
+        if (!deviceUid) return { success: false, error: 'No device UID found' };
+        try {
+            // Call a new endpoint that returns only the current device's status
+            const response = await axios.get(`/api/devices/status?device_uid=${encodeURIComponent(deviceUid)}`);
+            return { success: true, device: response.data.device };
+        } catch (error) {
+            if (error.response?.status === 404) {
+                return { success: true, device: null };
+            }
+            return { success: false, error: error.response?.data?.error || 'Failed to check device status' };
+        }
+    };
+
     const value = {
         user,
         loading,
@@ -337,7 +358,8 @@ export const AuthProvider = ({ children }) => {
         checkPendingDevices,
         approveDevice,
         rejectDevice,
-        getDeviceUidHeader // <-- export for use in all API pages
+        getDeviceUidHeader, // <-- export for use in all API pages
+        checkCurrentDeviceApprovalStatus
     };
 
     return (

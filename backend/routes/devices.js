@@ -177,6 +177,30 @@ router.get('/pending', authenticateToken, async (req, res) => {
     }
 });
 
+// Securely get the status of the current device by device_uid
+router.get('/status', authenticateToken, async (req, res) => {
+    const userId = req.user.id;
+    const deviceUid = req.query.device_uid;
+    if (!deviceUid) {
+        return res.status(400).json({ error: 'Missing device_uid' });
+    }
+    try {
+        const { data: device, error } = await supabase
+            .from('device')
+            .select('*')
+            .eq('user_id', userId)
+            .eq('device_uid', deviceUid)
+            .single();
+        if (error || !device) {
+            return res.status(404).json({ error: 'Device not found' });
+        }
+        res.json({ device });
+    } catch (err) {
+        console.error('Get device status error:', err);
+        res.status(500).json({ error: 'Failed to get device status' });
+    }
+});
+
 // Get device statistics
 router.get('/stats/overview', authenticateToken, async (req, res) => {
     const userId = req.user.id;
