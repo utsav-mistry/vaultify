@@ -193,6 +193,10 @@ router.post('/login', [
 
         const { email, password } = req.body;
 
+        // Define userAgent and ipAddress at the start for use throughout
+        const userAgent = req.headers['user-agent'] || 'Unknown';
+        const ipAddress = req.ip || req.connection.remoteAddress || 'Unknown';
+
         // Find user in Supabase
         const { data: user, error: userError } = await supabase
             .from('user')
