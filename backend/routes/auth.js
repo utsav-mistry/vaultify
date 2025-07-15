@@ -302,19 +302,46 @@ router.post('/login', [
                 .select()
                 .single();
             if (newDeviceError) {
-                return res.status(500).json({ error: 'Device registration failed' });
-            }
-            device = newDevice;
-            // Set device_uid in response header for frontend to store
-            res.set('x-device-uid', newDeviceUid);
-            // Optionally, set as cookie:
-            res.cookie && res.cookie('device_uid', newDeviceUid, { httpOnly: true, sameSite: 'Strict' });
-            if (!shouldAutoApprove) {
-                return res.status(403).json({
-                    error: 'New device detected. Please approve this device from another authorized device.',
-                    requiresApproval: true,
-                    deviceId: newDevice.id
-                });
+                console.error('Failed to create device record:', newDeviceError);
+                // If this is a duplicate constraint violation, try to find and update the existing device
+                if (newDeviceError.code === '23505' || (newDeviceError.message && newDeviceError.message.includes('duplicate'))) {
+                    const { data: existingDevice, error: findError } = await supabase
+                        .from('device')
+                        .select('*')
+                        .eq('user_id', user.id)
+                        .eq('user_agent', userAgent)
+                        .single();
+                    if (!findError && existingDevice) {
+                        device = existingDevice;
+                        // Update device_uid and other info if needed
+                        await supabase
+                            .from('device')
+                            .update({
+                                device_uid: newDeviceUid,
+                                ip_address: ipAddress,
+                                user_agent: userAgent,
+                                last_used: new Date().toISOString()
+                            })
+                            .eq('id', device.id);
+                    } else {
+                        console.error('Failed to find or update existing device after constraint violation:', findError);
+                        return res.status(500).json({ error: 'Device registration failed' });
+                    }
+                } else {
+                    return res.status(500).json({ error: 'Device registration failed' });
+                }
+            } else {
+                device = newDevice;
+                // Set device_uid in response header for frontend to store
+                res.set('x-device-uid', newDeviceUid);
+                res.cookie && res.cookie('device_uid', newDeviceUid, { httpOnly: true, sameSite: 'Strict' });
+                if (!shouldAutoApprove) {
+                    return res.status(403).json({
+                        error: 'New device detected. Please approve this device from another authorized device.',
+                        requiresApproval: true,
+                        deviceId: newDevice.id
+                    });
+                }
             }
         }
         // If device is not approved or is rejected
