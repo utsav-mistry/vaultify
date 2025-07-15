@@ -13,6 +13,11 @@ if (!axios.defaults.baseURL) {
     axios.defaults.baseURL = API_BASE_URL;
 }
 
+const getDeviceUidHeader = () => {
+    const deviceUid = localStorage.getItem('device_uid');
+    return deviceUid ? { 'x-device-uid': deviceUid } : {};
+};
+
 const Profile = () => {
     const { user, updateProfile, deleteAccount } = useAuth();
     const { showMessage } = useMessage();
@@ -171,7 +176,8 @@ const Profile = () => {
 
     const fetchStats = async () => {
         try {
-            const response = await axios.get('/api/passwords/stats/overview');
+            const headers = getDeviceUidHeader();
+            const response = await axios.get('/api/passwords/stats/overview', { headers });
             setStats(response.data);
         } catch (error) {
             console.error('Error fetching stats:', error);
