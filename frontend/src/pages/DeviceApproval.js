@@ -36,11 +36,13 @@ const DeviceApproval = () => {
     const fetchPendingDevice = async () => {
         try {
             const API_BASE_URL = process.env.REACT_APP_API_URL || 'https://vaultify-a88w.onrender.com';
+            const headers = {
+                'Authorization': `Bearer ${localStorage.getItem('token')}`
+            };
+            const deviceUid = localStorage.getItem('device_uid');
+            if (deviceUid) headers['x-device-uid'] = deviceUid;
             const response = await fetch(`${API_BASE_URL}/api/devices/pending`, {
-                headers: {
-                    'Authorization': `Bearer ${localStorage.getItem('token')}`,
-                    'x-device-uid': localStorage.getItem('device_uid')
-                }
+                headers
             });
 
             if (response.ok) {
@@ -67,12 +69,14 @@ const DeviceApproval = () => {
         setActionLoading(true);
         try {
             const API_BASE_URL = process.env.REACT_APP_API_URL || 'https://vaultify-a88w.onrender.com';
+            const headers = {
+                'Authorization': `Bearer ${localStorage.getItem('token')}`
+            };
+            const deviceUid = localStorage.getItem('device_uid');
+            if (deviceUid) headers['x-device-uid'] = deviceUid;
             const response = await fetch(`${API_BASE_URL}/api/devices/${device.id}/approve`, {
                 method: 'POST',
-                headers: {
-                    'Authorization': `Bearer ${localStorage.getItem('token')}`,
-                    'x-device-uid': localStorage.getItem('device_uid')
-                }
+                headers
             });
             if (response.ok) {
                 showMessage('Device approved successfully', 'success');
@@ -91,12 +95,14 @@ const DeviceApproval = () => {
         setActionLoading(true);
         try {
             const API_BASE_URL = process.env.REACT_APP_API_URL || 'https://vaultify-a88w.onrender.com';
+            const headers = {
+                'Authorization': `Bearer ${localStorage.getItem('token')}`
+            };
+            const deviceUid = localStorage.getItem('device_uid');
+            if (deviceUid) headers['x-device-uid'] = deviceUid;
             const response = await fetch(`${API_BASE_URL}/api/devices/${device.id}/reject`, {
                 method: 'POST',
-                headers: {
-                    'Authorization': `Bearer ${localStorage.getItem('token')}`,
-                    'x-device-uid': localStorage.getItem('device_uid')
-                }
+                headers
             });
             if (response.ok) {
                 showMessage('Device rejected', 'success');

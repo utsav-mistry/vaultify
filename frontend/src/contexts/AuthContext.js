@@ -34,7 +34,7 @@ export const AuthProvider = ({ children }) => {
         if (deviceUid) {
             axios.defaults.headers.common['x-device-uid'] = deviceUid;
         }
-    }, []);
+    }, [localStorage.getItem('token'), localStorage.getItem(DEVICE_UID_KEY)]);
 
     // Check if user is authenticated on app load
     useEffect(() => {
@@ -101,7 +101,17 @@ export const AuthProvider = ({ children }) => {
             setUser(user);
 
             // Store device_uid from response header (if present)
-            const deviceUid = response.headers['x-device-uid'];
+            let deviceUid = response.headers['x-device-uid'] || response.headers['X-Device-Uid'] || response.headers['X-DEVICE-UID'];
+            // Axios lowercases all headers, so prefer 'x-device-uid'
+            if (!deviceUid && response.headers) {
+                // Try to find the header in any casing
+                for (const key of Object.keys(response.headers)) {
+                    if (key.toLowerCase() === 'x-device-uid') {
+                        deviceUid = response.headers[key];
+                        break;
+                    }
+                }
+            }
             if (deviceUid) {
                 localStorage.setItem(DEVICE_UID_KEY, deviceUid);
                 axios.defaults.headers.common['x-device-uid'] = deviceUid;

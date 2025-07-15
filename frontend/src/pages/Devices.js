@@ -32,11 +32,13 @@ const Devices = () => {
     const fetchDevices = async () => {
         try {
             const API_BASE_URL = process.env.REACT_APP_API_URL || 'https://vaultify-a88w.onrender.com';
+            const headers = {
+                'Authorization': `Bearer ${localStorage.getItem('token')}`
+            };
+            const deviceUid = localStorage.getItem('device_uid');
+            if (deviceUid) headers['x-device-uid'] = deviceUid;
             const response = await fetch(`${API_BASE_URL}/api/devices`, {
-                headers: {
-                    'Authorization': `Bearer ${localStorage.getItem('token')}`,
-                    'x-device-uid': localStorage.getItem('device_uid')
-                }
+                headers
             });
 
             if (response.ok) {
@@ -59,12 +61,14 @@ const Devices = () => {
         setActionLoading(deviceId);
         try {
             const API_BASE_URL = process.env.REACT_APP_API_URL || 'https://vaultify-a88w.onrender.com';
+            const headers = {
+                'Authorization': `Bearer ${localStorage.getItem('token')}`
+            };
+            const deviceUid = localStorage.getItem('device_uid');
+            if (deviceUid) headers['x-device-uid'] = deviceUid;
             const response = await fetch(`${API_BASE_URL}/api/devices/${deviceId}/approve`, {
                 method: 'POST',
-                headers: {
-                    'Authorization': `Bearer ${localStorage.getItem('token')}`,
-                    'x-device-uid': localStorage.getItem('device_uid')
-                }
+                headers
             });
 
             if (response.ok) {
@@ -85,12 +89,14 @@ const Devices = () => {
         setActionLoading(deviceId);
         try {
             const API_BASE_URL = process.env.REACT_APP_API_URL || 'https://vaultify-a88w.onrender.com';
+            const headers = {
+                'Authorization': `Bearer ${localStorage.getItem('token')}`
+            };
+            const deviceUid = localStorage.getItem('device_uid');
+            if (deviceUid) headers['x-device-uid'] = deviceUid;
             const response = await fetch(`${API_BASE_URL}/api/devices/${deviceId}/reject`, {
                 method: 'POST',
-                headers: {
-                    'Authorization': `Bearer ${localStorage.getItem('token')}`,
-                    'x-device-uid': localStorage.getItem('device_uid')
-                }
+                headers
             });
 
             if (response.ok) {
@@ -115,12 +121,14 @@ const Devices = () => {
         setActionLoading(deviceId);
         try {
             const API_BASE_URL = process.env.REACT_APP_API_URL || 'https://vaultify-a88w.onrender.com';
+            const headers = {
+                'Authorization': `Bearer ${localStorage.getItem('token')}`
+            };
+            const deviceUid = localStorage.getItem('device_uid');
+            if (deviceUid) headers['x-device-uid'] = deviceUid;
             const response = await fetch(`${API_BASE_URL}/api/devices/${deviceId}`, {
                 method: 'DELETE',
-                headers: {
-                    'Authorization': `Bearer ${localStorage.getItem('token')}`,
-                    'x-device-uid': localStorage.getItem('device_uid')
-                }
+                headers
             });
 
             if (response.ok) {

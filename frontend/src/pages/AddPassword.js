@@ -131,13 +131,14 @@ const AddPassword = () => {
         try {
             const API_BASE_URL = process.env.REACT_APP_API_URL || 'https://vaultify-a88w.onrender.com';
             const deviceUid = localStorage.getItem('device_uid');
+            const headers = {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${localStorage.getItem('token')}`
+            };
+            if (deviceUid) headers['x-device-uid'] = deviceUid;
             const response = await fetch(`${API_BASE_URL}/api/passwords`, {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${localStorage.getItem('token')}`,
-                    ...(deviceUid ? { 'x-device-uid': deviceUid } : {})
-                },
+                headers,
                 body: JSON.stringify(formData)
             });
 

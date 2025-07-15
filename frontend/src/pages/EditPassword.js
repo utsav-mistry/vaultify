@@ -41,10 +41,13 @@ const EditPassword = () => {
     const fetchPassword = async () => {
         try {
             const API_BASE_URL = process.env.REACT_APP_API_URL || 'https://vaultify-a88w.onrender.com';
+            const headers = {
+                'Authorization': `Bearer ${localStorage.getItem('token')}`
+            };
+            const deviceUid = localStorage.getItem('device_uid');
+            if (deviceUid) headers['x-device-uid'] = deviceUid;
             const response = await fetch(`${API_BASE_URL}/api/passwords/${id}`, {
-                headers: {
-                    'Authorization': `Bearer ${localStorage.getItem('token')}`
-                }
+                headers
             });
 
             if (response.ok) {
@@ -132,12 +135,15 @@ const EditPassword = () => {
         setSaving(true);
         try {
             const API_BASE_URL = process.env.REACT_APP_API_URL || 'https://vaultify-a88w.onrender.com';
+            const headers = {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${localStorage.getItem('token')}`
+            };
+            const deviceUid = localStorage.getItem('device_uid');
+            if (deviceUid) headers['x-device-uid'] = deviceUid;
             const response = await fetch(`${API_BASE_URL}/api/passwords/${id}`, {
                 method: 'PUT',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${localStorage.getItem('token')}`
-                },
+                headers,
                 body: JSON.stringify(password)
             });
 
