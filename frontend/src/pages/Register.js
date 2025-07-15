@@ -1,10 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useMessage } from '../contexts/MessageContext';
 import { useAuthNavigation } from '../hooks/useAuthNavigation';
+import { VerifyOtpContext } from '../App';
 
-const Register = () => {
+const Register = ({ setCanVerifyOtp }) => {
     const [formData, setFormData] = useState({
         name: '',
         email: '',
@@ -19,6 +20,7 @@ const Register = () => {
     const { showMessage } = useMessage();
     const navigate = useNavigate();
     const { shouldRedirectToDashboard } = useAuthNavigation();
+    const verifyOtpCtx = useContext(VerifyOtpContext);
 
     // Redirect if already authenticated
     useEffect(() => {
@@ -50,10 +52,16 @@ const Register = () => {
         setLoading(true);
 
         try {
-            await register(formData.name, formData.email, formData.password);
-            showMessage('Registration successful! Please check your email for verification.', 'success');
-            navigate('/verify-otp');
+            const result = await register(formData);
+            if (result.success) {
+                if (setCanVerifyOtp) setCanVerifyOtp(true);
+                if (verifyOtpCtx) verifyOtpCtx.setCanVerifyOtp(true);
+                showMessage('Registration successful! Please verify your email.', 'success');
+                navigate('/verify-otp', { state: { email: result.email } });
+            }
         } catch (error) {
+            if (setCanVerifyOtp) setCanVerifyOtp(false);
+            if (verifyOtpCtx) verifyOtpCtx.setCanVerifyOtp(false);
             showMessage(error.message || 'Registration failed', 'error');
         } finally {
             setLoading(false);

@@ -1,10 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useMessage } from '../contexts/MessageContext';
 import OTPInput from '../components/OTPInput';
+import { VerifyOtpContext } from '../App';
 
-const VerifyOTP = () => {
+const VerifyOTP = ({ setCanVerifyOtp }) => {
     const [otp, setOtp] = useState('');
     const [loading, setLoading] = useState(false);
     const [resendTimer, setResendTimer] = useState(0);
@@ -12,6 +13,7 @@ const VerifyOTP = () => {
     const location = useLocation();
     const { verifyOTP, resendOTP } = useAuth();
     const { showMessage } = useMessage();
+    const verifyOtpCtx = useContext(VerifyOtpContext);
 
     const email = location.state?.email;
 
@@ -48,10 +50,14 @@ const VerifyOTP = () => {
         try {
             const result = await verifyOTP(email, otp);
             if (result.success) {
+                if (setCanVerifyOtp) setCanVerifyOtp(false);
+                if (verifyOtpCtx) verifyOtpCtx.setCanVerifyOtp(false);
                 showMessage('Email verified successfully!', 'success');
                 navigate('/login');
             }
         } catch (error) {
+            if (setCanVerifyOtp) setCanVerifyOtp(false);
+            if (verifyOtpCtx) verifyOtpCtx.setCanVerifyOtp(false);
             showMessage(error.message || 'Failed to verify OTP', 'error');
         } finally {
             setLoading(false);

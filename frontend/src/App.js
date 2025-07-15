@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from './contexts/AuthContext';
 import { useTheme } from './contexts/ThemeContext';
@@ -77,11 +77,17 @@ const GlobalThemeToggle = () => {
     );
 };
 
+// Add a context to track if waiting for approval is needed
+const WaitingApprovalContext = React.createContext();
+const VerifyOtpContext = React.createContext();
+
 function App() {
     const { user, loading } = useAuth();
     const [sidebarOpen, setSidebarOpen] = useState(false);
     const location = useLocation();
     const [scrollPosition, setScrollPosition] = useState(0);
+    const [waitingForApproval, setWaitingForApproval] = useState(false);
+    const [canVerifyOtp, setCanVerifyOtp] = useState(false);
 
     useEffect(() => {
         const handleClickOutside = (event) => {
@@ -115,87 +121,96 @@ function App() {
     const isAuthRoute = ['/login', '/register', '/verify-otp', '/forgot-password', '/reset-password'].includes(location.pathname);
 
     return (
-        <div className="app">
-            {/* Global Theme Toggle - Always visible */}
-            <GlobalThemeToggle />
+        <WaitingApprovalContext.Provider value={{ waitingForApproval, setWaitingForApproval }}>
+            <VerifyOtpContext.Provider value={{ canVerifyOtp, setCanVerifyOtp }}>
+                <div className="app">
+                    {/* Global Theme Toggle - Always visible */}
+                    <GlobalThemeToggle />
 
-            {/* Sidebar - Only visible when authenticated */}
-            {user && (
-                <Sidebar
-                    id="sidebar"
-                    isOpen={sidebarOpen}
-                    onClose={() => setSidebarOpen(false)}
-                />
-            )}
+                    {/* Sidebar - Only visible when authenticated */}
+                    {user && (
+                        <Sidebar
+                            id="sidebar"
+                            isOpen={sidebarOpen}
+                            onClose={() => setSidebarOpen(false)}
+                        />
+                    )}
 
-            <div className={`content-wrapper ${user && sidebarOpen ? 'sidebar-expanded' : ''}`}>
-                {/* Header - Show HomeHeader only on public routes, nothing on protected routes */}
-                {isPublicRoute ? (
-                    <HomeHeader />
-                ) : null}
+                    <div className={`content-wrapper ${user && sidebarOpen ? 'sidebar-expanded' : ''}`}>
+                        {/* Header - Show HomeHeader only on public routes, nothing on protected routes */}
+                        {isPublicRoute ? (
+                            <HomeHeader />
+                        ) : null}
 
-                <main className={user ? 'authenticated-main' : 'public-main'}>
-                    <Routes>
-                        {/* Public Routes */}
-                        <Route path="/" element={<Home />} />
-                        <Route path="/login" element={<Login />} />
-                        <Route path="/register" element={<Register />} />
-                        <Route path="/verify-otp" element={<VerifyOTP />} />
-                        <Route path="/forgot-password" element={<ForgotPassword />} />
-                        <Route path="/reset-password" element={<ResetPassword />} />
-                        <Route path="/privacy-policy" element={<PrivacyPolicy />} />
-                        <Route path="/terms-of-service" element={<TermsOfService />} />
-                        <Route path="/version" element={<Version />} />
-                        <Route path="/reactivate" element={<Reactivate />} />
-                        <Route path="/waiting-approval" element={<WaitingForApproval />} />
+                        <main className={user ? 'authenticated-main' : 'public-main'}>
+                            <Routes>
+                                {/* Public Routes */}
+                                <Route path="/" element={<Home />} />
+                                <Route path="/login" element={<Login setWaitingForApproval={setWaitingForApproval} />} />
+                                <Route path="/register" element={<Register setCanVerifyOtp={setCanVerifyOtp} />} />
+                                <Route path="/verify-otp" element={
+                                    canVerifyOtp ? <VerifyOTP setCanVerifyOtp={setCanVerifyOtp} /> : <Navigate to="/register" replace />
+                                } />
+                                <Route path="/forgot-password" element={<ForgotPassword />} />
+                                <Route path="/reset-password" element={<ResetPassword />} />
+                                <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+                                <Route path="/terms-of-service" element={<TermsOfService />} />
+                                <Route path="/version" element={<Version />} />
+                                <Route path="/reactivate" element={<Reactivate />} />
+                                <Route path="/waiting-approval" element={
+                                    waitingForApproval ? <WaitingForApproval /> : <Navigate to="/login" replace />
+                                } />
 
-                        {/* Protected Routes */}
-                        <Route path="/dashboard" element={
-                            <ProtectedRoute>
-                                <Dashboard />
-                            </ProtectedRoute>
-                        } />
-                        <Route path="/profile" element={
-                            <ProtectedRoute>
-                                <Profile />
-                            </ProtectedRoute>
-                        } />
-                        <Route path="/devices" element={
-                            <ProtectedRoute>
-                                <Devices />
-                            </ProtectedRoute>
-                        } />
-                        <Route path="/device-approval" element={
-                            <ProtectedRoute>
-                                <DeviceApproval />
-                            </ProtectedRoute>
-                        } />
-                        <Route path="/import-export" element={
-                            <ProtectedRoute>
-                                <ImportExport />
-                            </ProtectedRoute>
-                        } />
-                        <Route path="/add-password" element={
-                            <ProtectedRoute>
-                                <AddPassword />
-                            </ProtectedRoute>
-                        } />
-                        <Route path="/edit-password/:id" element={
-                            <ProtectedRoute>
-                                <EditPassword />
-                            </ProtectedRoute>
-                        } />
+                                {/* Protected Routes */}
+                                <Route path="/dashboard" element={
+                                    <ProtectedRoute>
+                                        <Dashboard />
+                                    </ProtectedRoute>
+                                } />
+                                <Route path="/profile" element={
+                                    <ProtectedRoute>
+                                        <Profile />
+                                    </ProtectedRoute>
+                                } />
+                                <Route path="/devices" element={
+                                    <ProtectedRoute>
+                                        <Devices />
+                                    </ProtectedRoute>
+                                } />
+                                <Route path="/device-approval" element={
+                                    <ProtectedRoute>
+                                        <DeviceApproval />
+                                    </ProtectedRoute>
+                                } />
+                                <Route path="/import-export" element={
+                                    <ProtectedRoute>
+                                        <ImportExport />
+                                    </ProtectedRoute>
+                                } />
+                                <Route path="/add-password" element={
+                                    <ProtectedRoute>
+                                        <AddPassword />
+                                    </ProtectedRoute>
+                                } />
+                                <Route path="/edit-password/:id" element={
+                                    <ProtectedRoute>
+                                        <EditPassword />
+                                    </ProtectedRoute>
+                                } />
 
-                        {/* Catch all route */}
-                        <Route path="*" element={<Navigate to="/" replace />} />
-                    </Routes>
-                </main>
+                                {/* Catch all route */}
+                                <Route path="*" element={<Navigate to="/" replace />} />
+                            </Routes>
+                        </main>
 
-                {/* Footer - Show on all pages */}
-                <Footer />
-            </div>
-        </div>
+                        {/* Footer - Show on all pages */}
+                        <Footer />
+                    </div>
+                </div>
+            </VerifyOtpContext.Provider>
+        </WaitingApprovalContext.Provider>
     );
 }
 
+export { WaitingApprovalContext, VerifyOtpContext };
 export default App; 

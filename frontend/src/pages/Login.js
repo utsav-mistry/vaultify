@@ -1,9 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useContext } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useMessage } from '../contexts/MessageContext';
+import { WaitingApprovalContext } from '../App';
 
-const Login = () => {
+const Login = ({ setWaitingForApproval }) => {
   const [formData, setFormData] = useState({
     email: '',
     password: ''
@@ -14,6 +15,7 @@ const Login = () => {
   const { login } = useAuth();
   const { showMessage } = useMessage();
   const navigate = useNavigate();
+  const waitingApprovalCtx = useContext(WaitingApprovalContext);
 
   const handleChange = (e) => {
     setFormData({
@@ -30,19 +32,27 @@ const Login = () => {
       const result = await login(formData);
 
       if (result.success) {
+        if (setWaitingForApproval) setWaitingForApproval(false);
+        if (waitingApprovalCtx) waitingApprovalCtx.setWaitingForApproval(false);
         navigate('/dashboard');
       } else {
         // Handle device approval required
         if (result.requiresApproval) {
+          if (setWaitingForApproval) setWaitingForApproval(true);
+          if (waitingApprovalCtx) waitingApprovalCtx.setWaitingForApproval(true);
           navigate('/waiting-approval');
           return;
         }
         // Handle device rejected
         if (result.deviceRejected) {
+          if (setWaitingForApproval) setWaitingForApproval(false);
+          if (waitingApprovalCtx) waitingApprovalCtx.setWaitingForApproval(false);
           showMessage('This device has been rejected. Please use another device or contact support.', 'error');
         }
       }
     } catch (error) {
+      if (setWaitingForApproval) setWaitingForApproval(false);
+      if (waitingApprovalCtx) waitingApprovalCtx.setWaitingForApproval(false);
       showMessage(error.message || 'Login failed', 'error');
     } finally {
       setLoading(false);
