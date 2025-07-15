@@ -21,11 +21,18 @@ export const AuthProvider = ({ children }) => {
     const [loading, setLoading] = useState(true);
     const { showMessage } = useMessage();
 
+    const DEVICE_UID_KEY = 'device_uid';
+
     // Configure axios defaults
     useEffect(() => {
         const token = localStorage.getItem('token');
         if (token) {
             axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+        }
+        // Set device_uid header if present
+        const deviceUid = localStorage.getItem(DEVICE_UID_KEY);
+        if (deviceUid) {
+            axios.defaults.headers.common['x-device-uid'] = deviceUid;
         }
     }, []);
 
@@ -33,13 +40,10 @@ export const AuthProvider = ({ children }) => {
     useEffect(() => {
         const checkAuth = async () => {
             const token = localStorage.getItem('token');
-            console.log('AuthContext: Initial auth check, token exists:', !!token);
 
             if (token) {
                 try {
-                    console.log('AuthContext: Making /api/auth/me request');
                     const response = await axios.get('/api/auth/me');
-                    console.log('AuthContext: /api/auth/me response:', response.data);
                     setUser(response.data.user);
                 } catch (error) {
                     console.error('AuthContext: Auth check failed:', error);
@@ -48,7 +52,6 @@ export const AuthProvider = ({ children }) => {
                 }
             }
             setLoading(false);
-            console.log('AuthContext: Initial auth check complete');
         };
 
         checkAuth();
@@ -89,16 +92,20 @@ export const AuthProvider = ({ children }) => {
     // Login user
     const login = async (credentials) => {
         try {
-            console.log('AuthContext: Login attempt with credentials:', credentials);
             const response = await axios.post('/api/auth/login', credentials);
-            console.log('AuthContext: Login response:', response.data);
 
             const { token, user } = response.data;
 
             localStorage.setItem('token', token);
             axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
             setUser(user);
-            console.log('AuthContext: User state set to:', user);
+
+            // Store device_uid from response header (if present)
+            const deviceUid = response.headers['x-device-uid'];
+            if (deviceUid) {
+                localStorage.setItem(DEVICE_UID_KEY, deviceUid);
+                axios.defaults.headers.common['x-device-uid'] = deviceUid;
+            }
 
             showMessage('Login successful!', 'success');
             return { success: true };
@@ -144,7 +151,9 @@ export const AuthProvider = ({ children }) => {
             console.error('Logout error:', error);
         } finally {
             localStorage.removeItem('token');
+            localStorage.removeItem(DEVICE_UID_KEY);
             delete axios.defaults.headers.common['Authorization'];
+            delete axios.defaults.headers.common['x-device-uid'];
             setUser(null);
             showMessage('Logged out successfully', 'success');
         }

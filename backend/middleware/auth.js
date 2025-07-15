@@ -1,5 +1,6 @@
 const jwt = require('jsonwebtoken');
 const supabase = require('../utils/supabaseClient');
+const { v4: uuidv4 } = require('uuid');
 
 // Middleware to verify JWT token and fetch user from Supabase
 const authenticateToken = async (req, res, next) => {
@@ -43,48 +44,80 @@ const checkDeviceApproval = async (req, res, next) => {
         const userAgent = req.headers['user-agent'];
         const ipAddress = req.ip || req.connection.remoteAddress;
 
-        console.log('Device approval check - User ID:', user.id);
-        console.log('Device approval check - User Agent:', userAgent);
-        console.log('Device approval check - IP Address:', ipAddress);
+        // console.log('Device approval check - User ID:', user.id);
+        // console.log('Device approval check - User Agent:', userAgent);
+        // console.log('Device approval check - IP Address:', ipAddress);
 
-        // Use the same robust device detection logic as in auth routes
+        const deviceUid = req.headers['x-device-uid'] || (req.cookies && req.cookies.device_uid);
         let device = null;
 
-        // First try exact match (user_agent + ip_address)
-        const { data: exactDevice, error: exactError } = await supabase
-            .from('device')
-            .select('*')
-            .eq('user_id', user.id)
-            .eq('user_agent', userAgent)
-            .eq('ip_address', ipAddress)
-            .single();
+        if (deviceUid) {
+            // Try to find device by device_uid
+            const { data: foundDevice, error: foundDeviceError } = await supabase
+                .from('device')
+                .select('*')
+                .eq('user_id', user.id)
+                .eq('device_uid', deviceUid)
+                .single();
+            if (!foundDeviceError && foundDevice) {
+                device = foundDevice;
+                // Update IP, user_agent, last_used
+                await supabase
+                    .from('device')
+                    .update({
+                        ip_address: ipAddress,
+                        user_agent: userAgent,
+                        last_used: new Date().toISOString()
+                    })
+                    .eq('id', device.id);
+            }
+        }
 
-        console.log('Device approval check - Exact match result:', { exactDevice, exactError });
-
-        if (!exactError && exactDevice) {
-            device = exactDevice;
-            console.log('Device approval check - Found exact device match:', device.id);
-        } else {
-            // If no exact match, check for similar devices (same user_agent but different IP)
-            const { data: similarDevices, error: similarError } = await supabase
+        if (!device) {
+            // Fallback to legacy logic (user_agent + ip_address)
+            // First try exact match (user_agent + ip_address)
+            const { data: exactDevice, error: exactError } = await supabase
                 .from('device')
                 .select('*')
                 .eq('user_id', user.id)
                 .eq('user_agent', userAgent)
-                .order('created_at', { ascending: false });
+                .eq('ip_address', ipAddress)
+                .single();
 
-            console.log('Device approval check - Similar devices result:', { similarDevices, similarError });
+            // console.log('Device approval check - Exact match result:', { exactDevice, exactError });
 
-            if (!similarError && similarDevices && similarDevices.length > 0) {
-                device = similarDevices[0];
-                console.log('Device approval check - Found similar device:', device.id);
+            if (!exactError && exactDevice) {
+                device = exactDevice;
+                // console.log('Device approval check - Found exact device match:', device.id);
 
                 // Update the IP address to the current one
                 await supabase
                     .from('device')
                     .update({ ip_address: ipAddress })
                     .eq('id', device.id);
-                console.log('Device approval check - Updated device IP to:', ipAddress);
+                // console.log('Device approval check - Updated device IP to:', ipAddress);
+            } else {
+                // If no exact match, check for similar devices (same user_agent but different IP)
+                const { data: similarDevices, error: similarError } = await supabase
+                    .from('device')
+                    .select('*')
+                    .eq('user_id', user.id)
+                    .eq('user_agent', userAgent)
+                    .order('created_at', { ascending: false });
+
+                // console.log('Device approval check - Similar devices result:', { similarDevices, similarError });
+
+                if (!similarError && similarDevices && similarDevices.length > 0) {
+                    device = similarDevices[0];
+                    // console.log('Device approval check - Found similar device:', device.id);
+
+                    // Update the IP address to the current one
+                    await supabase
+                        .from('device')
+                        .update({ ip_address: ipAddress })
+                        .eq('id', device.id);
+                    // console.log('Device approval check - Updated device IP to:', ipAddress);
+                }
             }
         }
 
@@ -95,19 +128,14 @@ const checkDeviceApproval = async (req, res, next) => {
                 .select('*')
                 .eq('user_id', user.id);
 
-            console.log('Device approval check - All devices for user:', allDevices);
-            console.log('Device approval check - All devices error:', allDevicesError);
+            // console.log('Device approval check - All devices for user:', allDevices);
+            // console.log('Device approval check - All devices error:', allDevicesError);
 
             console.error('Device not found for authenticated user:', user.id);
             return res.status(403).json({ error: 'Device not found. Please log in again.' });
         }
 
-        console.log('Device approval check - Device found:', {
-            id: device.id,
-            device_name: device.device_name,
-            is_approved: device.is_approved,
-            is_rejected: device.is_rejected
-        });
+       
 
         if (device.is_rejected) {
             return res.status(403).json({ error: 'Device access denied' });
@@ -128,6 +156,12 @@ const checkDeviceApproval = async (req, res, next) => {
                 last_used: new Date().toISOString()
             })
             .eq('id', device.id);
+
+        // On approval, update user.last_active
+        await supabase
+            .from('user')
+            .update({ last_active: new Date().toISOString() })
+            .eq('id', user.id);
 
         req.device = device;
         next();

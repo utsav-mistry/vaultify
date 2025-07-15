@@ -30,7 +30,6 @@ export const ThemeProvider = ({ children }) => {
 
     // Save theme to localStorage and apply to document when it changes
     useEffect(() => {
-        console.log('Applying theme to document:', theme);
         localStorage.setItem('theme', theme);
         document.documentElement.setAttribute('data-theme', theme);
     }, [theme]);
@@ -49,10 +48,8 @@ export const ThemeProvider = ({ children }) => {
     }, []);
 
     const toggleTheme = () => {
-        console.log('Theme toggle clicked, current theme:', theme);
         setTheme(prevTheme => {
             const newTheme = prevTheme === 'light' ? 'dark' : 'light';
-            console.log('Switching to theme:', newTheme);
             return newTheme;
         });
     };

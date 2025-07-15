@@ -211,7 +211,100 @@ const sendPasswordResetEmail = async (userEmail, resetToken) => {
   }
 };
 
+// Send inactivity warning email (7 days)
+const sendInactivityEmail = async (userEmail, username) => {
+  try {
+    const transporter = createTransporter();
+    const mailOptions = {
+      from: process.env.MAIL_DEFAULT_SENDER,
+      to: userEmail,
+      subject: 'We Miss You at Vaultify!',
+      html: `
+        <html>
+          <body style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f4f7fa; color: #333;">
+            <div style="background: #fff; max-width: 400px; margin: 0 auto; padding: 32px; border-radius: 8px; box-shadow: 0 6px 12px rgba(0,0,0,0.08);">
+              <h2 style="color: #007bff;">Hi ${username || 'there'},</h2>
+              <p>We noticed you haven’t logged in to Vaultify for a while. Your passwords are safe, but we recommend logging in regularly to keep your account active.</p>
+              <p>If you have any questions or need help, reply to this email or contact our support team.</p>
+              <p style="margin-top: 32px; font-size: 13px; color: #888;">This is an automated message. Please do not reply directly.</p>
+            </div>
+          </body>
+        </html>
+      `
+    };
+    await transporter.sendMail(mailOptions);
+    return true;
+  } catch (error) {
+    console.error('Error sending inactivity email:', error);
+    return false;
+  }
+};
+
+// Send account paused email (30 days)
+const sendPauseEmail = async (userEmail, username) => {
+  try {
+    const transporter = createTransporter();
+    const mailOptions = {
+      from: process.env.MAIL_DEFAULT_SENDER,
+      to: userEmail,
+      subject: 'Your Vaultify Account Has Been Paused',
+      html: `
+        <html>
+          <body style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f4f7fa; color: #333;">
+            <div style="background: #fff; max-width: 400px; margin: 0 auto; padding: 32px; border-radius: 8px; box-shadow: 0 6px 12px rgba(0,0,0,0.08);">
+              <h2 style="color: #007bff;">Hi ${username || 'there'},</h2>
+              <p>Your Vaultify account has been paused due to 30 days of inactivity. To reactivate, please log in and follow the reactivation instructions, or contact our support team if you need help.</p>
+              <p>Your data remains safe and encrypted. If you did not expect this, please contact us immediately.</p>
+              <p style="margin-top: 32px; font-size: 13px; color: #888;">This is an automated message. Please do not reply directly.</p>
+            </div>
+          </body>
+        </html>
+      `
+    };
+    await transporter.sendMail(mailOptions);
+    return true;
+  } catch (error) {
+    console.error('Error sending pause email:', error);
+    return false;
+  }
+};
+
+// Send reactivation email (reactivation link)
+const sendReactivationEmail = async (userEmail, username, reactivationUrl) => {
+  try {
+    const transporter = createTransporter();
+    const mailOptions = {
+      from: process.env.MAIL_DEFAULT_SENDER,
+      to: userEmail,
+      subject: 'Reactivate Your Vaultify Account',
+      html: `
+        <html>
+          <body style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f4f7fa; color: #333;">
+            <div style="background: #fff; max-width: 400px; margin: 0 auto; padding: 32px; border-radius: 8px; box-shadow: 0 6px 12px rgba(0,0,0,0.08);">
+              <h2 style="color: #007bff;">Hi ${username || 'there'},</h2>
+              <p>We received a request to reactivate your Vaultify account. If this was you, please click the button below to reactivate your account:</p>
+              <div style="margin: 24px 0; text-align: center;">
+                <a href="${reactivationUrl}" style="background: #007bff; color: #fff; padding: 12px 24px; border-radius: 6px; text-decoration: none; font-weight: bold;">Reactivate Account</a>
+              </div>
+              <p>If you did not request this, you can safely ignore this email.</p>
+              <p style="margin-top: 32px; font-size: 13px; color: #888;">This is an automated message. Please do not reply directly.</p>
+            </div>
+          </body>
+        </html>
+      `
+    };
+    await transporter.sendMail(mailOptions);
+    return true;
+  } catch (error) {
+    console.error('Error sending reactivation email:', error);
+    return false;
+  }
+};
+
 module.exports = {
   sendOTPEmail,
-  sendPasswordResetEmail
+  sendPasswordResetEmail,
+  sendInactivityEmail,
+  sendPauseEmail,
+  sendReactivationEmail
 }; 

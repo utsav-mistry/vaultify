@@ -34,7 +34,8 @@ const Devices = () => {
             const API_BASE_URL = process.env.REACT_APP_API_URL || 'https://vaultify-a88w.onrender.com';
             const response = await fetch(`${API_BASE_URL}/api/devices`, {
                 headers: {
-                    'Authorization': `Bearer ${localStorage.getItem('token')}`
+                    'Authorization': `Bearer ${localStorage.getItem('token')}`,
+                    'x-device-uid': localStorage.getItem('device_uid')
                 }
             });
 
@@ -61,7 +62,8 @@ const Devices = () => {
             const response = await fetch(`${API_BASE_URL}/api/devices/${deviceId}/approve`, {
                 method: 'POST',
                 headers: {
-                    'Authorization': `Bearer ${localStorage.getItem('token')}`
+                    'Authorization': `Bearer ${localStorage.getItem('token')}`,
+                    'x-device-uid': localStorage.getItem('device_uid')
                 }
             });
 
@@ -86,7 +88,8 @@ const Devices = () => {
             const response = await fetch(`${API_BASE_URL}/api/devices/${deviceId}/reject`, {
                 method: 'POST',
                 headers: {
-                    'Authorization': `Bearer ${localStorage.getItem('token')}`
+                    'Authorization': `Bearer ${localStorage.getItem('token')}`,
+                    'x-device-uid': localStorage.getItem('device_uid')
                 }
             });
 
@@ -115,7 +118,8 @@ const Devices = () => {
             const response = await fetch(`${API_BASE_URL}/api/devices/${deviceId}`, {
                 method: 'DELETE',
                 headers: {
-                    'Authorization': `Bearer ${localStorage.getItem('token')}`
+                    'Authorization': `Bearer ${localStorage.getItem('token')}`,
+                    'x-device-uid': localStorage.getItem('device_uid')
                 }
             });
 

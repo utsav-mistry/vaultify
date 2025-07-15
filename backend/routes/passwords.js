@@ -60,7 +60,6 @@ router.use(checkDeviceApproval);
 // Get all passwords for user
 router.get('/', async (req, res) => {
     try {
-        console.log('GET /api/passwords req.user:', req.user);
         const { search } = req.query;
         const passwords = await DatabaseService.getPasswords(req.user.id, search);
 
@@ -268,11 +267,7 @@ router.get('/test-device', async (req, res) => {
 // Get password statistics
 router.get('/stats/overview', async (req, res) => {
     try {
-        console.log('Stats request - User ID:', req.user.id);
-        console.log('Stats request - User AES Key:', req.user.aes_key ? 'Present' : 'Missing');
-
         const passwords = await DatabaseService.getPasswords(req.user.id);
-        console.log('Stats request - Passwords fetched:', passwords.length);
 
         // Calculate statistics
         const totalPasswords = passwords.length;
@@ -291,7 +286,6 @@ router.get('/stats/overview', async (req, res) => {
             recentPasswords
         };
 
-        console.log('Stats request - Calculated stats:', stats);
         res.json(stats);
     } catch (error) {
         console.error('Get password stats error:', error);

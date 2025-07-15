@@ -27,6 +27,8 @@ const ImportExport = () => {
     const [sidebarAreaHovered, setSidebarAreaHovered] = useState(false);
     const [fetchError, setFetchError] = useState(null);
 
+    const deviceUid = localStorage.getItem('device_uid');
+
 
     useEffect(() => {
         if (sidebarAreaHovered) setSidebarOpen(true);
@@ -42,7 +44,8 @@ const ImportExport = () => {
             const API_BASE_URL = process.env.REACT_APP_API_URL || 'https://vaultify-a88w.onrender.com';
             const response = await fetch(`${API_BASE_URL}/api/import-export/export/${format}`, {
                 headers: {
-                    'Authorization': `Bearer ${localStorage.getItem('token')}`
+                    'Authorization': `Bearer ${localStorage.getItem('token')}`,
+                    ...(deviceUid ? { 'x-device-uid': deviceUid } : {})
                 }
             });
 
@@ -92,7 +95,8 @@ const ImportExport = () => {
             const response = await fetch(`${API_BASE_URL}/api/import-export/import/${importFormat}`, {
                 method: 'POST',
                 headers: {
-                    'Authorization': `Bearer ${localStorage.getItem('token')}`
+                    'Authorization': `Bearer ${localStorage.getItem('token')}`,
+                    ...(deviceUid ? { 'x-device-uid': deviceUid } : {})
                 },
                 body: formData
             });

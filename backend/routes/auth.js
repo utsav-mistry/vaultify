@@ -5,6 +5,7 @@ const { body, validationResult } = require('express-validator');
 const supabase = require('../utils/supabaseClient');
 const { generateAESKey, generateOTP, verifyPasswordWithFallback, migrateOldPassword, isOldPasswordFormat } = require('../utils/crypto');
 const { sendOTPEmail, sendPasswordResetEmail } = require('../utils/email');
+const { v4: uuidv4 } = require('uuid');
 
 const router = express.Router();
 
@@ -238,76 +239,54 @@ router.post('/login', [
             return res.status(401).json({ error: 'Invalid credentials' });
         }
 
+        // After fetching user and validating password, before device logic:
+        if (user.is_paused) {
+            return res.status(403).json({
+                error: 'Your account is paused. Please check your email for reactivation instructions or contact support.',
+                pauseReason: user.pause_reason || 'inactivity'
+            });
+        }
+
         // Device handling logic - approve first device, require approval for others
         const userAgent = req.headers['user-agent'];
         const ipAddress = req.ip || req.connection.remoteAddress;
 
-        console.log('Login: Checking device for user:', user.id, 'IP:', ipAddress, 'User-Agent:', userAgent);
-
-        // First, check if this is the user's first device
-        const { data: existingDevices, error: devicesError } = await supabase
-            .from('device')
-            .select('*')
-            .eq('user_id', user.id);
-
-        if (devicesError) {
-            console.error('Failed to fetch existing devices:', devicesError);
-            return res.status(500).json({ error: 'Device verification failed' });
-        }
-
-        const isFirstDevice = existingDevices.length === 0;
-
-        // Check if this specific device exists (more robust detection to prevent duplicates)
+        // Get device_uid from header or cookie
+        const deviceUid = req.headers['x-device-uid'] || (req.cookies && req.cookies.device_uid);
         let device = null;
         let deviceError = null;
 
-        // First try exact match (user_agent + ip_address)
-        const { data: exactDevice, error: exactError } = await supabase
-            .from('device')
-            .select('*')
-            .eq('user_id', user.id)
-            .eq('user_agent', userAgent)
-            .eq('ip_address', ipAddress)
-            .single();
-
-        if (!exactError && exactDevice) {
-            device = exactDevice;
-            console.log('Login: Found exact device match:', device.id);
-        } else {
-            // If no exact match, check for similar devices (same user_agent but different IP)
-            // This handles cases where IP changes but it's the same device (e.g., mobile network, VPN)
-            const { data: similarDevices, error: similarError } = await supabase
+        if (deviceUid) {
+            // Try to find device by device_uid
+            const { data: foundDevice, error: foundDeviceError } = await supabase
                 .from('device')
                 .select('*')
                 .eq('user_id', user.id)
-                .eq('user_agent', userAgent)
-                .order('created_at', { ascending: false });
-
-            if (!similarError && similarDevices && similarDevices.length > 0) {
-                // Found a device with same user_agent, use the most recent one
-                device = similarDevices[0];
-                console.log('Login: Found similar device (same user_agent):', device.id);
-
-                // Update the IP address to the current one
+                .eq('device_uid', deviceUid)
+                .single();
+            if (!foundDeviceError && foundDevice) {
+                device = foundDevice;
+                // Update IP, user_agent, last_used
                 await supabase
                     .from('device')
-                    .update({ ip_address: ipAddress })
+                    .update({
+                        ip_address: ipAddress,
+                        user_agent: userAgent,
+                        last_used: new Date().toISOString()
+                    })
                     .eq('id', device.id);
-                console.log('Login: Updated device IP address to:', ipAddress);
             } else {
-                deviceError = 'Device not found';
+                deviceError = 'Device not found by device_uid';
             }
         }
-
-        console.log('Login: Device lookup result:', { device, deviceError, isFirstDevice });
-
-        let currentDevice = device;
-
-        if (deviceError || !device) {
-            // This is a new device
+        if (!device) {
+            // No device_uid or not found, treat as new device
+            const newDeviceUid = uuidv4();
+            const isFirstDevice = (await supabase
+                .from('device')
+                .select('*')
+                .eq('user_id', user.id)).data.length === 0;
             const shouldAutoApprove = isFirstDevice;
-
-            // Try to create new device, but handle potential duplicate constraint violations
             const { data: newDevice, error: newDeviceError } = await supabase
                 .from('device')
                 .insert({
@@ -315,111 +294,58 @@ router.post('/login', [
                     device_name: getDeviceName(userAgent),
                     ip_address: ipAddress,
                     user_agent: userAgent,
-                    is_approved: shouldAutoApprove ? true : null, // Auto-approve only first device
-                    is_rejected: false
+                    is_approved: shouldAutoApprove ? true : null,
+                    is_rejected: false,
+                    device_uid: newDeviceUid,
+                    last_used: new Date().toISOString()
                 })
                 .select()
                 .single();
-
             if (newDeviceError) {
-                // Check if this is a duplicate constraint violation
-                if (newDeviceError.code === '23505') { // PostgreSQL unique constraint violation
-                    console.log('Device already exists, attempting to find existing device');
-
-                    // Try to find the existing device
-                    const { data: existingDevice, error: findError } = await supabase
-                        .from('device')
-                        .select('*')
-                        .eq('user_id', user.id)
-                        .eq('user_agent', userAgent)
-                        .single();
-
-                    if (!findError && existingDevice) {
-                        // Use the existing device
-                        currentDevice = existingDevice;
-                        console.log('Login: Using existing device:', existingDevice.id);
-
-                        // Update IP address if it changed
-                        if (existingDevice.ip_address !== ipAddress) {
-                            await supabase
-                                .from('device')
-                                .update({ ip_address: ipAddress })
-                                .eq('id', existingDevice.id);
-                            console.log('Login: Updated device IP address to:', ipAddress);
-                        }
-                    } else {
-                        console.error('Failed to find existing device after constraint violation:', findError);
-                        return res.status(500).json({ error: 'Device registration failed' });
-                    }
-                } else {
-                    console.error('Failed to create device record:', newDeviceError);
-                    return res.status(500).json({ error: 'Device registration failed' });
-                }
-            } else {
-                currentDevice = newDevice;
-                console.log('Login: Created new device:', newDevice.id, 'Auto-approved:', shouldAutoApprove);
-
-                // If this is not the first device, block login and require approval
-                if (!shouldAutoApprove) {
-                    return res.status(403).json({
-                        error: 'New device detected. Please approve this device from another authorized device.',
-                        requiresApproval: true,
-                        deviceId: newDevice.id
-                    });
-                }
+                return res.status(500).json({ error: 'Device registration failed' });
             }
-        } else {
-            // Device exists, check if it's approved
-            if (device.is_approved === false || device.is_rejected === true) {
+            device = newDevice;
+            // Set device_uid in response header for frontend to store
+            res.set('x-device-uid', newDeviceUid);
+            // Optionally, set as cookie:
+            res.cookie && res.cookie('device_uid', newDeviceUid, { httpOnly: true, sameSite: 'Strict' });
+            if (!shouldAutoApprove) {
                 return res.status(403).json({
-                    error: 'This device has been rejected. Please use another device or contact support.',
-                    deviceRejected: true
-                });
-            }
-
-            if (device.is_approved === null) {
-                return res.status(403).json({
-                    error: 'This device is pending approval. Please approve it from another authorized device.',
+                    error: 'New device detected. Please approve this device from another authorized device.',
                     requiresApproval: true,
-                    deviceId: device.id
+                    deviceId: newDevice.id
                 });
             }
-
-            // Device is approved, proceed with login
-            currentDevice = device;
         }
-
-        console.log('Login: Device handling complete, proceeding with login for user:', user.id);
-
-        // Update device last used if device exists
-        if (currentDevice) {
-            await supabase
-                .from('device')
-                .update({
-                    last_used: new Date().toISOString()
-                })
-                .eq('id', currentDevice.id);
-
-            // Log login
-            await supabase
-                .from('logs')
-                .insert({
-                    user_id: user.id,
-                    action: 'User logged in',
-                    details: `Device: ${currentDevice.device_name}, IP: ${ipAddress}, User-Agent: ${userAgent}`,
-                    timestamp: new Date().toISOString()
-                });
-        } else {
-            // Log login without device info
-            await supabase
-                .from('logs')
-                .insert({
-                    user_id: user.id,
-                    action: 'User logged in',
-                    details: `IP: ${ipAddress}, User-Agent: ${userAgent}`,
-                    timestamp: new Date().toISOString()
-                });
+        // If device is not approved or is rejected
+        if (device.is_rejected) {
+            return res.status(403).json({
+                error: 'This device has been rejected. Please use another device or contact support.',
+                deviceRejected: true
+            });
         }
+        if (device.is_approved === null) {
+            return res.status(403).json({
+                error: 'This device is pending approval. Please approve it from another authorized device.',
+                requiresApproval: true,
+                deviceId: device.id
+            });
+        }
+        // Update user.last_active
+        await supabase
+            .from('user')
+            .update({ last_active: new Date().toISOString() })
+            .eq('id', user.id);
+
+        // Log login
+        await supabase
+            .from('logs')
+            .insert({
+                user_id: user.id,
+                action: 'User logged in',
+                details: `Device: ${device.device_name}, IP: ${ipAddress}, User-Agent: ${userAgent}`,
+                timestamp: new Date().toISOString()
+            });
 
         // Generate JWT token
         const token = jwt.sign(
@@ -436,7 +362,6 @@ router.post('/login', [
             aes_key: user.aes_key
         };
 
-        console.log('Login: Sending successful response for user:', user.id);
         res.json({
             message: 'Login successful',
             token,
@@ -454,16 +379,12 @@ router.post('/forgot-password', [
     body('email').isEmail().withMessage('Valid email required')
 ], async (req, res) => {
     try {
-        console.log('Forgot password request received for email:', req.body.email);
-
         const errors = validationResult(req);
         if (!errors.isEmpty()) {
-            console.log('Validation errors:', errors.array());
             return res.status(400).json({ errors: errors.array() });
         }
 
         const { email } = req.body;
-        console.log('Looking up user with email:', email);
 
         const { data: user, error: userError } = await supabase
             .from('user')
@@ -471,17 +392,13 @@ router.post('/forgot-password', [
             .eq('email', email)
             .single();
 
-        console.log('User lookup result:', { user, userError });
-
         if (userError || !user) {
-            console.log('User not found or error:', userError);
             return res.status(404).json({ error: 'User not found' });
         }
 
         // Generate OTP
         const otp = generateOTP();
         const otpExpiry = Date.now() + (5 * 60 * 1000); // 5 minutes
-        console.log('Generated OTP:', otp, 'for email:', email);
 
         // Store OTP temporarily
         otpStore.set(email, {
@@ -489,19 +406,14 @@ router.post('/forgot-password', [
             expiry: otpExpiry,
             type: 'password-reset'
         });
-        console.log('OTP stored in memory');
 
         // Send OTP email
-        console.log('Attempting to send OTP email to:', email);
         const emailSent = await sendOTPEmail(email, otp);
-        console.log('Email send result:', emailSent);
 
         if (!emailSent) {
-            console.log('Failed to send OTP email');
             return res.status(500).json({ error: 'Failed to send OTP email' });
         }
 
-        console.log('OTP email sent successfully');
         res.json({ message: 'Password reset OTP sent' });
 
     } catch (error) {

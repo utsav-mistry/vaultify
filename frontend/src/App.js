@@ -23,16 +23,14 @@ import ResetPassword from './pages/ResetPassword';
 import PrivacyPolicy from './pages/PrivacyPolicy';
 import TermsOfService from './pages/TermsOfService';
 import Version from './pages/Version';
+import Reactivate from './pages/Reactivate';
 
 
 // Protected Route Component
 const ProtectedRoute = ({ children }) => {
     const { user, loading } = useAuth();
 
-    console.log('ProtectedRoute: user:', user, 'loading:', loading);
-
     if (loading) {
-        console.log('ProtectedRoute: Showing loading state');
         return (
             <div className="loading">
                 <div className="pixelated-spinner">
@@ -50,11 +48,9 @@ const ProtectedRoute = ({ children }) => {
     }
 
     if (!user) {
-        console.log('ProtectedRoute: No user, redirecting to login');
         return <Navigate to="/login" replace />;
     }
 
-    console.log('ProtectedRoute: User authenticated, rendering children');
     return children;
 };
 
@@ -85,8 +81,6 @@ function App() {
     const [sidebarOpen, setSidebarOpen] = useState(false);
     const location = useLocation();
     const [scrollPosition, setScrollPosition] = useState(0);
-
-    console.log('App: Current user state:', user, 'loading:', loading, 'pathname:', location.pathname);
 
     useEffect(() => {
         const handleClickOutside = (event) => {
@@ -151,6 +145,7 @@ function App() {
                         <Route path="/privacy-policy" element={<PrivacyPolicy />} />
                         <Route path="/terms-of-service" element={<TermsOfService />} />
                         <Route path="/version" element={<Version />} />
+                        <Route path="/reactivate" element={<Reactivate />} />
 
                         {/* Protected Routes */}
                         <Route path="/dashboard" element={

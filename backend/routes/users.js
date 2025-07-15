@@ -4,6 +4,8 @@ const { body, validationResult } = require('express-validator');
 const { authenticateToken, checkDeviceApproval, logAction } = require('../middleware/auth');
 const supabase = require('../utils/supabaseClient');
 const { verifyPasswordWithFallback, hashPassword } = require('../utils/crypto');
+const jwt = require('jsonwebtoken');
+const crypto = require('crypto');
 
 const router = express.Router();
 
@@ -327,6 +329,88 @@ router.get('/logs', async (req, res) => {
     } catch (error) {
         console.error('Get logs error:', error);
         res.status(500).json({ error: 'Failed to fetch logs' });
+    }
+});
+
+// Request account reactivation (single-use token)
+router.post('/request-reactivation', async (req, res) => {
+    const { email } = req.body;
+    if (!email) return res.status(400).json({ error: 'Email required' });
+    try {
+        const { data: user, error: userError } = await supabase
+            .from('user')
+            .select('*')
+            .eq('email', email)
+            .single();
+        if (userError || !user) {
+            // For security, do not reveal if email is valid
+            return res.json({ message: 'If your account is eligible, you will receive a reactivation email shortly.' });
+        }
+        if (!user.is_paused) {
+            return res.json({ message: 'If your account is eligible, you will receive a reactivation email shortly.' });
+        }
+        // Generate a secure random token
+        const token = crypto.randomBytes(32).toString('hex');
+        const expiry = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
+        // Store token and expiry in user record
+        await supabase.from('user').update({
+            reactivation_token: token,
+            reactivation_token_expiry: expiry.toISOString()
+        }).eq('id', user.id);
+        // Send reactivation email
+        const reactivationUrl = `${process.env.FRONTEND_URL || 'https://vaultify.app'}/reactivate?token=${token}`;
+        await require('../utils/email').sendReactivationEmail(user.email, user.username, reactivationUrl);
+        // Log the request
+        await supabase.from('logs').insert({
+            user_id: user.id,
+            action: 'Reactivation requested',
+            details: `Reactivation email sent to ${user.email} (IP: ${req.ip || req.connection?.remoteAddress}, UA: ${req.headers['user-agent']})`,
+            timestamp: new Date().toISOString()
+        });
+        return res.json({ message: 'If your account is eligible, you will receive a reactivation email shortly.' });
+    } catch (error) {
+        console.error('Request reactivation error:', error);
+        return res.status(500).json({ error: 'Failed to process reactivation request' });
+    }
+});
+
+// Reactivate account via token (single-use)
+router.get('/reactivate', async (req, res) => {
+    const { token } = req.query;
+    if (!token) return res.status(400).json({ error: 'Missing token' });
+    try {
+        // Find user by token
+        const { data: user, error: userError } = await supabase
+            .from('user')
+            .select('*')
+            .eq('reactivation_token', token)
+            .single();
+        if (userError || !user) {
+            return res.status(400).json({ error: 'Invalid or expired token' });
+        }
+        if (!user.is_paused) {
+            return res.json({ message: 'Your account is already active.' });
+        }
+        if (!user.reactivation_token_expiry || new Date(user.reactivation_token_expiry) < new Date()) {
+            return res.status(400).json({ error: 'Reactivation link expired. Please request a new one.' });
+        }
+        // Unpause and clear token fields
+        await supabase.from('user').update({
+            is_paused: false,
+            pause_reason: null,
+            reactivation_token: null,
+            reactivation_token_expiry: null
+        }).eq('id', user.id);
+        await supabase.from('logs').insert({
+            user_id: user.id,
+            action: 'Account reactivated',
+            details: `User reactivated via email link (IP: ${req.ip || req.connection?.remoteAddress}, UA: ${req.headers['user-agent']})`,
+            timestamp: new Date().toISOString()
+        });
+        return res.json({ message: 'Your account has been reactivated. You can now log in.' });
+    } catch (error) {
+        console.error('Account reactivation error:', error);
+        return res.status(400).json({ error: 'Invalid or expired token' });
     }
 });
 
