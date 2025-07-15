@@ -138,6 +138,11 @@ export const AuthProvider = ({ children }) => {
                 const match = response.headers['set-cookie'].match(/device_uid=([^;]+)/);
                 if (match) newDeviceUid = match[1];
             }
+            if (!newDeviceUid) {
+                console.warn('No device_uid found in login response headers!');
+            } else {
+                console.log('device_uid received from backend:', newDeviceUid);
+            }
             setDeviceUid(newDeviceUid);
 
             showMessage('Login successful!', 'success');
@@ -161,6 +166,11 @@ export const AuthProvider = ({ children }) => {
                 if (!pendingDeviceUid && error.response.headers && error.response.headers['set-cookie']) {
                     const match = error.response.headers['set-cookie'].match(/device_uid=([^;]+)/);
                     if (match) pendingDeviceUid = match[1];
+                }
+                if (!pendingDeviceUid) {
+                    console.warn('No device_uid found in approval response headers!');
+                } else {
+                    console.log('device_uid received from backend (approval):', pendingDeviceUid);
                 }
                 setDeviceUid(pendingDeviceUid);
                 return {
