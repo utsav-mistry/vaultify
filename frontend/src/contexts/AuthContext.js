@@ -92,7 +92,13 @@ export const AuthProvider = ({ children }) => {
     // Login user
     const login = async (credentials) => {
         try {
-            const response = await axios.post('/api/auth/login', credentials);
+            // If device_uid exists, include it in the login request headers
+            const deviceUid = localStorage.getItem(DEVICE_UID_KEY);
+            const config = deviceUid
+                ? { headers: { 'x-device-uid': deviceUid } }
+                : {};
+
+            const response = await axios.post('/api/auth/login', credentials, config);
 
             const { token, user } = response.data;
 
@@ -101,50 +107,60 @@ export const AuthProvider = ({ children }) => {
             setUser(user);
 
             // Store device_uid from response header (if present)
-            let deviceUid = response.headers['x-device-uid'] || response.headers['X-Device-Uid'] || response.headers['X-DEVICE-UID'];
-            // Axios lowercases all headers, so prefer 'x-device-uid'
-            if (!deviceUid && response.headers) {
-                // Try to find the header in any casing
+            let newDeviceUid = response.headers['x-device-uid'] || response.headers['X-Device-Uid'] || response.headers['X-DEVICE-UID'];
+            if (!newDeviceUid && response.headers) {
                 for (const key of Object.keys(response.headers)) {
                     if (key.toLowerCase() === 'x-device-uid') {
-                        deviceUid = response.headers[key];
+                        newDeviceUid = response.headers[key];
                         break;
                     }
                 }
             }
-            if (deviceUid) {
-                localStorage.setItem(DEVICE_UID_KEY, deviceUid);
-                axios.defaults.headers.common['x-device-uid'] = deviceUid;
+            if (newDeviceUid) {
+                localStorage.setItem(DEVICE_UID_KEY, newDeviceUid);
+                axios.defaults.headers.common['x-device-uid'] = newDeviceUid;
             }
 
             showMessage('Login successful!', 'success');
             return { success: true };
         } catch (error) {
-            console.error('AuthContext: Login error:', error.response?.data || error);
-
-            // Handle device approval required
+            // Device approval required
             if (error.response?.status === 403 && error.response?.data?.requiresApproval) {
-                const message = error.response.data.error;
-                showMessage(message, 'warning');
+                const message = error.response.data.error || 'Login successful, but this device is pending approval. Please approve it from another device.';
+                showMessage(message, 'info'); // Show as info, not error
+                // Store device_uid from response header if present (for later use after approval)
+                let pendingDeviceUid = error.response.headers && (error.response.headers['x-device-uid'] || error.response.headers['X-Device-Uid'] || error.response.headers['X-DEVICE-UID']);
+                if (!pendingDeviceUid && error.response.headers) {
+                    for (const key of Object.keys(error.response.headers)) {
+                        if (key.toLowerCase() === 'x-device-uid') {
+                            pendingDeviceUid = error.response.headers[key];
+                            break;
+                        }
+                    }
+                }
+                if (pendingDeviceUid) {
+                    localStorage.setItem(DEVICE_UID_KEY, pendingDeviceUid);
+                    axios.defaults.headers.common['x-device-uid'] = pendingDeviceUid;
+                }
                 return {
                     success: false,
-                    error: message,
                     requiresApproval: true,
                     deviceId: error.response.data.deviceId
                 };
             }
-
             // Handle device rejected
             if (error.response?.status === 403 && error.response?.data?.deviceRejected) {
                 const message = error.response.data.error;
                 showMessage(message, 'error');
+                // Clear device_uid if rejected
+                localStorage.removeItem(DEVICE_UID_KEY);
+                delete axios.defaults.headers.common['x-device-uid'];
                 return {
                     success: false,
                     error: message,
                     deviceRejected: true
                 };
             }
-
             const message = error.response?.data?.error || 'Login failed';
             showMessage(message, 'error');
             return { success: false, error: message };

@@ -282,11 +282,12 @@ router.post('/login', [
         if (!device) {
             // No device_uid or not found, treat as new device
             const newDeviceUid = uuidv4();
-            const isFirstDevice = (await supabase
+            // Check if this is the first device for the user
+            const { data: existingDevices, error: deviceCountError } = await supabase
                 .from('device')
-                .select('*')
-                .eq('user_id', user.id)).data.length === 0;
-            const shouldAutoApprove = isFirstDevice;
+                .select('id')
+                .eq('user_id', user.id);
+            const isFirstDevice = !existingDevices || existingDevices.length === 0;
             const { data: newDevice, error: newDeviceError } = await supabase
                 .from('device')
                 .insert({
@@ -294,7 +295,7 @@ router.post('/login', [
                     device_name: getDeviceName(userAgent),
                     ip_address: ipAddress,
                     user_agent: userAgent,
-                    is_approved: shouldAutoApprove ? true : null,
+                    is_approved: isFirstDevice ? true : null, // Only first device is auto-approved
                     is_rejected: false,
                     device_uid: newDeviceUid,
                     last_used: new Date().toISOString()
@@ -320,7 +321,9 @@ router.post('/login', [
                                 device_uid: newDeviceUid,
                                 ip_address: ipAddress,
                                 user_agent: userAgent,
-                                last_used: new Date().toISOString()
+                                last_used: new Date().toISOString(),
+                                is_approved: isFirstDevice ? true : null, // Only first device is auto-approved
+                                is_rejected: false
                             })
                             .eq('id', device.id);
                     } else {
@@ -332,16 +335,16 @@ router.post('/login', [
                 }
             } else {
                 device = newDevice;
-                // Set device_uid in response header for frontend to store
-                res.set('x-device-uid', newDeviceUid);
-                res.cookie && res.cookie('device_uid', newDeviceUid, { httpOnly: true, sameSite: 'Strict' });
-                if (!shouldAutoApprove) {
-                    return res.status(403).json({
-                        error: 'New device detected. Please approve this device from another authorized device.',
-                        requiresApproval: true,
-                        deviceId: newDevice.id
-                    });
-                }
+            }
+            // Set device_uid in response header for frontend to store
+            res.set('x-device-uid', newDeviceUid);
+            res.cookie && res.cookie('device_uid', newDeviceUid, { httpOnly: true, sameSite: 'Strict' });
+            if (!isFirstDevice) {
+                return res.status(403).json({
+                    error: 'Device pending approval. Please approve this device from another authorized device.',
+                    requiresApproval: true,
+                    deviceId: device.id
+                });
             }
         }
         // If device is not approved or is rejected
@@ -353,7 +356,7 @@ router.post('/login', [
         }
         if (device.is_approved === null) {
             return res.status(403).json({
-                error: 'This device is pending approval. Please approve it from another authorized device.',
+                error: 'Device pending approval. Please approve this device from another authorized device.',
                 requiresApproval: true,
                 deviceId: device.id
             });
