@@ -128,14 +128,37 @@ const checkDeviceApproval = async (req, res, next) => {
                 .select('*')
                 .eq('user_id', user.id);
 
-            // console.log('Device approval check - All devices for user:', allDevices);
-            // console.log('Device approval check - All devices error:', allDevicesError);
-
-            console.error('Device not found for authenticated user:', user.id);
-            return res.status(403).json({ error: 'Device not found. Please log in again.' });
+            if (!allDevicesError && allDevices && allDevices.length === 0) {
+                // No devices exist for this user: treat as first device, auto-register and approve
+                const newDeviceUid = uuidv4();
+                const { data: newDevice, error: newDeviceError } = await supabase
+                    .from('device')
+                    .insert({
+                        user_id: user.id,
+                        device_name: getDeviceName(userAgent),
+                        ip_address: ipAddress,
+                        user_agent: userAgent,
+                        is_approved: true,
+                        is_rejected: false,
+                        device_uid: newDeviceUid,
+                        last_used: new Date().toISOString()
+                    })
+                    .select()
+                    .single();
+                if (newDeviceError) {
+                    console.error('Failed to auto-register first device:', newDeviceError);
+                    return res.status(500).json({ error: 'Device auto-registration failed' });
+                }
+                device = newDevice;
+                // Optionally set device_uid in response header/cookie if needed
+                res.set && res.set('x-device-uid', newDeviceUid);
+                res.cookie && res.cookie('device_uid', newDeviceUid, { httpOnly: true, sameSite: 'Strict' });
+            } else {
+                // Devices exist but none matched
+                console.error('Device not found for authenticated user:', user.id);
+                return res.status(403).json({ error: 'Device not found. Please log in again.' });
+            }
         }
-
-       
 
         if (device.is_rejected) {
             return res.status(403).json({ error: 'Device access denied' });
