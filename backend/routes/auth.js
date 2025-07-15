@@ -247,24 +247,19 @@ router.post('/login', [
             });
         }
 
-        // Device handling logic - approve first device, require approval for others
-        const userAgent = req.headers['user-agent'];
-        const ipAddress = req.ip || req.connection.remoteAddress;
-
-        // Get device_uid from header or cookie
+        // Device handling logic - only use device_uid
         const deviceUid = req.headers['x-device-uid'] || (req.cookies && req.cookies.device_uid);
         let device = null;
-        let deviceError = null;
 
         if (deviceUid) {
             // Try to find device by device_uid
-            const { data: foundDevice, error: foundDeviceError } = await supabase
+            const { data: foundDevice } = await supabase
                 .from('device')
                 .select('*')
                 .eq('user_id', user.id)
                 .eq('device_uid', deviceUid)
                 .single();
-            if (!foundDeviceError && foundDevice) {
+            if (foundDevice) {
                 device = foundDevice;
                 // Update IP, user_agent, last_used
                 await supabase
@@ -275,15 +270,21 @@ router.post('/login', [
                         last_used: new Date().toISOString()
                     })
                     .eq('id', device.id);
-            } else {
-                deviceError = 'Device not found by device_uid';
+                res.set('x-device-uid', device.device_uid);
+                res.cookie && res.cookie('device_uid', device.device_uid, { httpOnly: true, sameSite: 'Strict' });
+                if (device.is_rejected) {
+                    return res.status(403).json({ error: 'This device has been rejected.', deviceRejected: true });
+                }
+                if (!device.is_approved) {
+                    return res.status(403).json({ error: 'Device pending approval.', requiresApproval: true, deviceId: device.id });
+                }
             }
         }
         if (!device) {
             // No device_uid or not found, treat as new device
             const newDeviceUid = uuidv4();
             // Check if this is the first device for the user
-            const { data: existingDevices, error: deviceCountError } = await supabase
+            const { data: existingDevices } = await supabase
                 .from('device')
                 .select('id')
                 .eq('user_id', user.id);
@@ -295,7 +296,7 @@ router.post('/login', [
                     device_name: getDeviceName(userAgent),
                     ip_address: ipAddress,
                     user_agent: userAgent,
-                    is_approved: isFirstDevice ? true : null, // Only first device is auto-approved
+                    is_approved: isFirstDevice,
                     is_rejected: false,
                     device_uid: newDeviceUid,
                     last_used: new Date().toISOString()
@@ -304,62 +305,21 @@ router.post('/login', [
                 .single();
             if (newDeviceError) {
                 console.error('Failed to create device record:', newDeviceError);
-                // If this is a duplicate constraint violation, try to find and update the existing device
-                if (newDeviceError.code === '23505' || (newDeviceError.message && newDeviceError.message.includes('duplicate'))) {
-                    const { data: existingDevice, error: findError } = await supabase
-                        .from('device')
-                        .select('*')
-                        .eq('user_id', user.id)
-                        .eq('user_agent', userAgent)
-                        .single();
-                    if (!findError && existingDevice) {
-                        device = existingDevice;
-                        // Update device_uid and other info if needed
-                        await supabase
-                            .from('device')
-                            .update({
-                                device_uid: newDeviceUid,
-                                ip_address: ipAddress,
-                                user_agent: userAgent,
-                                last_used: new Date().toISOString(),
-                                is_approved: isFirstDevice ? true : null, // Only first device is auto-approved
-                                is_rejected: false
-                            })
-                            .eq('id', device.id);
-                    } else {
-                        console.error('Failed to find or update existing device after constraint violation:', findError);
-                        return res.status(500).json({ error: 'Device registration failed' });
-                    }
-                } else {
-                    return res.status(500).json({ error: 'Device registration failed' });
-                }
-            } else {
-                device = newDevice;
+                return res.status(500).json({ error: 'Device registration failed' });
             }
-            // Set device_uid in response header for frontend to store
+            device = newDevice;
             res.set('x-device-uid', newDeviceUid);
             res.cookie && res.cookie('device_uid', newDeviceUid, { httpOnly: true, sameSite: 'Strict' });
             if (!isFirstDevice) {
-                return res.status(403).json({
-                    error: 'Device pending approval. Please approve this device from another authorized device.',
-                    requiresApproval: true,
-                    deviceId: device.id
-                });
+                return res.status(403).json({ error: 'Device pending approval.', requiresApproval: true, deviceId: device.id });
             }
         }
-        // If device is not approved or is rejected
+        // If device is not approved or is rejected (should not happen, but double check)
         if (device.is_rejected) {
-            return res.status(403).json({
-                error: 'This device has been rejected. Please use another device or contact support.',
-                deviceRejected: true
-            });
+            return res.status(403).json({ error: 'This device has been rejected.', deviceRejected: true });
         }
-        if (device.is_approved === null) {
-            return res.status(403).json({
-                error: 'Device pending approval. Please approve this device from another authorized device.',
-                requiresApproval: true,
-                deviceId: device.id
-            });
+        if (!device.is_approved) {
+            return res.status(403).json({ error: 'Device pending approval.', requiresApproval: true, deviceId: device.id });
         }
         // Update user.last_active
         await supabase

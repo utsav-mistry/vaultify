@@ -89,6 +89,23 @@ export const AuthProvider = ({ children }) => {
         }
     };
 
+    // Helper to set device_uid securely
+    const setDeviceUid = (deviceUid) => {
+        if (deviceUid) {
+            localStorage.setItem(DEVICE_UID_KEY, deviceUid);
+            axios.defaults.headers.common['x-device-uid'] = deviceUid;
+            // Set as secure, sameSite cookie (best effort, JS can't set httpOnly)
+            document.cookie = `device_uid=${deviceUid}; path=/; SameSite=Strict; Secure`;
+        }
+    };
+    // Helper to clear device_uid
+    const clearDeviceUid = () => {
+        localStorage.removeItem(DEVICE_UID_KEY);
+        delete axios.defaults.headers.common['x-device-uid'];
+        // Remove cookie
+        document.cookie = 'device_uid=; Max-Age=0; path=/; SameSite=Strict; Secure';
+    };
+
     // Login user
     const login = async (credentials) => {
         try {
@@ -116,10 +133,12 @@ export const AuthProvider = ({ children }) => {
                     }
                 }
             }
-            if (newDeviceUid) {
-                localStorage.setItem(DEVICE_UID_KEY, newDeviceUid);
-                axios.defaults.headers.common['x-device-uid'] = newDeviceUid;
+            // Fallback: try to extract from Set-Cookie if present
+            if (!newDeviceUid && response.headers && response.headers['set-cookie']) {
+                const match = response.headers['set-cookie'].match(/device_uid=([^;]+)/);
+                if (match) newDeviceUid = match[1];
             }
+            setDeviceUid(newDeviceUid);
 
             showMessage('Login successful!', 'success');
             return { success: true };
@@ -138,10 +157,12 @@ export const AuthProvider = ({ children }) => {
                         }
                     }
                 }
-                if (pendingDeviceUid) {
-                    localStorage.setItem(DEVICE_UID_KEY, pendingDeviceUid);
-                    axios.defaults.headers.common['x-device-uid'] = pendingDeviceUid;
+                // Fallback: try to extract from Set-Cookie if present
+                if (!pendingDeviceUid && error.response.headers && error.response.headers['set-cookie']) {
+                    const match = error.response.headers['set-cookie'].match(/device_uid=([^;]+)/);
+                    if (match) pendingDeviceUid = match[1];
                 }
+                setDeviceUid(pendingDeviceUid);
                 return {
                     success: false,
                     requiresApproval: true,
@@ -153,8 +174,7 @@ export const AuthProvider = ({ children }) => {
                 const message = error.response.data.error;
                 showMessage(message, 'error');
                 // Clear device_uid if rejected
-                localStorage.removeItem(DEVICE_UID_KEY);
-                delete axios.defaults.headers.common['x-device-uid'];
+                clearDeviceUid();
                 return {
                     success: false,
                     error: message,
@@ -167,8 +187,6 @@ export const AuthProvider = ({ children }) => {
         }
     };
 
-
-
     // Logout user
     const logout = async () => {
         try {
@@ -177,9 +195,8 @@ export const AuthProvider = ({ children }) => {
             console.error('Logout error:', error);
         } finally {
             localStorage.removeItem('token');
-            localStorage.removeItem(DEVICE_UID_KEY);
+            clearDeviceUid();
             delete axios.defaults.headers.common['Authorization'];
-            delete axios.defaults.headers.common['x-device-uid'];
             setUser(null);
             showMessage('Logged out successfully', 'success');
         }
