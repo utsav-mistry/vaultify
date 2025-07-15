@@ -21,7 +21,7 @@ const getDeviceUidHeader = () => {
 
 const Dashboard = () => {
     const navigate = useNavigate();
-    const { checkPendingDevices } = useAuth();
+    const { checkPendingDevices, getDeviceUidHeader } = useAuth();
     const [passwords, setPasswords] = useState([]);
     const [loading, setLoading] = useState(true);
     const [searchQuery, setSearchQuery] = useState('');
@@ -229,6 +229,7 @@ const Dashboard = () => {
     const fetchPasswords = async () => {
         try {
             const headers = getDeviceUidHeader();
+            console.log('[Device] Sending x-device-uid header:', headers['x-device-uid']);
             const response = await axios.get('/api/passwords', { headers });
             setPasswords(response.data.passwords);
         } catch (error) {
@@ -242,6 +243,7 @@ const Dashboard = () => {
     const fetchStats = async () => {
         try {
             const headers = getDeviceUidHeader();
+            console.log('[Device] Sending x-device-uid header:', headers['x-device-uid']);
             const response = await axios.get('/api/passwords/stats/overview', { headers });
             setStats(response.data);
         } catch (error) {

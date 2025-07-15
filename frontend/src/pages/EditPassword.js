@@ -25,6 +25,8 @@ const EditPassword = () => {
         password: ''
     });
 
+    const { getDeviceUidHeader } = useAuth();
+
 
     useEffect(() => {
         if (sidebarAreaHovered) setSidebarOpen(true);
@@ -42,10 +44,10 @@ const EditPassword = () => {
         try {
             const API_BASE_URL = process.env.REACT_APP_API_URL || 'https://vaultify-a88w.onrender.com';
             const headers = {
+                ...getDeviceUidHeader(),
                 'Authorization': `Bearer ${localStorage.getItem('token')}`
             };
-            const deviceUid = localStorage.getItem('device_uid');
-            if (deviceUid) headers['x-device-uid'] = deviceUid;
+            console.log('[Device] Sending x-device-uid header:', headers['x-device-uid']);
             const response = await fetch(`${API_BASE_URL}/api/passwords/${id}`, {
                 headers
             });
@@ -136,11 +138,11 @@ const EditPassword = () => {
         try {
             const API_BASE_URL = process.env.REACT_APP_API_URL || 'https://vaultify-a88w.onrender.com';
             const headers = {
+                ...getDeviceUidHeader(),
                 'Content-Type': 'application/json',
                 'Authorization': `Bearer ${localStorage.getItem('token')}`
             };
-            const deviceUid = localStorage.getItem('device_uid');
-            if (deviceUid) headers['x-device-uid'] = deviceUid;
+            console.log('[Device] Sending x-device-uid header:', headers['x-device-uid']);
             const response = await fetch(`${API_BASE_URL}/api/passwords/${id}`, {
                 method: 'PUT',
                 headers,
@@ -169,11 +171,14 @@ const EditPassword = () => {
         setSaving(true);
         try {
             const API_BASE_URL = process.env.REACT_APP_API_URL || 'https://vaultify-a88w.onrender.com';
+            const headers = {
+                ...getDeviceUidHeader(),
+                'Authorization': `Bearer ${localStorage.getItem('token')}`
+            };
+            console.log('[Device] Sending x-device-uid header:', headers['x-device-uid']);
             const response = await fetch(`${API_BASE_URL}/api/passwords/${id}`, {
                 method: 'DELETE',
-                headers: {
-                    'Authorization': `Bearer ${localStorage.getItem('token')}`
-                }
+                headers
             });
 
             if (response.ok) {

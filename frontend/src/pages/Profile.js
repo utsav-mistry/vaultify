@@ -13,13 +13,8 @@ if (!axios.defaults.baseURL) {
     axios.defaults.baseURL = API_BASE_URL;
 }
 
-const getDeviceUidHeader = () => {
-    const deviceUid = localStorage.getItem('device_uid');
-    return deviceUid ? { 'x-device-uid': deviceUid } : {};
-};
-
 const Profile = () => {
-    const { user, updateProfile, deleteAccount } = useAuth();
+    const { user, updateProfile, deleteAccount, getDeviceUidHeader } = useAuth();
     const { showMessage } = useMessage();
     const { theme } = useTheme();
 
@@ -177,6 +172,7 @@ const Profile = () => {
     const fetchStats = async () => {
         try {
             const headers = getDeviceUidHeader();
+            console.log('[Device] Sending x-device-uid header:', headers['x-device-uid']);
             const response = await axios.get('/api/passwords/stats/overview', { headers });
             setStats(response.data);
         } catch (error) {
@@ -203,10 +199,6 @@ const Profile = () => {
                     </>
                 )}
                 <main className={sidebarOpen ? 'blurred' : ''}>
-                    <div className="profile-header">
-                        <h1>Profile Settings</h1>
-                        <p>Manage your account information and security settings</p>
-                    </div>
                     <div className="loading">
                         <div className="pixelated-spinner">
                             <div className="pixel"></div>
@@ -216,9 +208,8 @@ const Profile = () => {
                             <div className="pixel"></div>
                             <div className="pixel"></div>
                             <div className="pixel"></div>
-                            <div className="pixel"></div>
                         </div>
-                        <div className="loading-text">Loading profile...</div>
+                        <div className="loading-text">Loading your stats...</div>
                     </div>
                 </main>
             </div>

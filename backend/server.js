@@ -37,8 +37,15 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 // CORS configuration
 app.use(cors({
     origin: process.env.CORS_ORIGIN || 'http://localhost:3000',
-    credentials: true
+    credentials: true,
+    allowedHeaders: ['authorization', 'content-type', 'x-device-uid'],
+    exposedHeaders: ['x-device-uid']
 }));
+// Always expose x-device-uid header for all responses (for extra safety)
+app.use((req, res, next) => {
+    res.header('Access-Control-Expose-Headers', 'x-device-uid');
+    next();
+});
 
 // Logging middleware
 app.use(morgan('combined'));

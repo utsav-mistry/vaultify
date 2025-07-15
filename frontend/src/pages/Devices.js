@@ -29,14 +29,16 @@ const Devices = () => {
         fetchDevices();
     }, []);
 
+    const { getDeviceUidHeader } = useAuth();
+
     const fetchDevices = async () => {
         try {
             const API_BASE_URL = process.env.REACT_APP_API_URL || 'https://vaultify-a88w.onrender.com';
             const headers = {
+                ...getDeviceUidHeader(),
                 'Authorization': `Bearer ${localStorage.getItem('token')}`
             };
-            const deviceUid = localStorage.getItem('device_uid');
-            if (deviceUid) headers['x-device-uid'] = deviceUid;
+            console.log('[Device] Sending x-device-uid header:', headers['x-device-uid']);
             const response = await fetch(`${API_BASE_URL}/api/devices`, {
                 headers
             });
@@ -62,10 +64,10 @@ const Devices = () => {
         try {
             const API_BASE_URL = process.env.REACT_APP_API_URL || 'https://vaultify-a88w.onrender.com';
             const headers = {
+                ...getDeviceUidHeader(),
                 'Authorization': `Bearer ${localStorage.getItem('token')}`
             };
-            const deviceUid = localStorage.getItem('device_uid');
-            if (deviceUid) headers['x-device-uid'] = deviceUid;
+            console.log('[Device] Sending x-device-uid header:', headers['x-device-uid']);
             const response = await fetch(`${API_BASE_URL}/api/devices/${deviceId}/approve`, {
                 method: 'POST',
                 headers
@@ -90,10 +92,10 @@ const Devices = () => {
         try {
             const API_BASE_URL = process.env.REACT_APP_API_URL || 'https://vaultify-a88w.onrender.com';
             const headers = {
+                ...getDeviceUidHeader(),
                 'Authorization': `Bearer ${localStorage.getItem('token')}`
             };
-            const deviceUid = localStorage.getItem('device_uid');
-            if (deviceUid) headers['x-device-uid'] = deviceUid;
+            console.log('[Device] Sending x-device-uid header:', headers['x-device-uid']);
             const response = await fetch(`${API_BASE_URL}/api/devices/${deviceId}/reject`, {
                 method: 'POST',
                 headers
@@ -122,10 +124,10 @@ const Devices = () => {
         try {
             const API_BASE_URL = process.env.REACT_APP_API_URL || 'https://vaultify-a88w.onrender.com';
             const headers = {
+                ...getDeviceUidHeader(),
                 'Authorization': `Bearer ${localStorage.getItem('token')}`
             };
-            const deviceUid = localStorage.getItem('device_uid');
-            if (deviceUid) headers['x-device-uid'] = deviceUid;
+            console.log('[Device] Sending x-device-uid header:', headers['x-device-uid']);
             const response = await fetch(`${API_BASE_URL}/api/devices/${deviceId}`, {
                 method: 'DELETE',
                 headers

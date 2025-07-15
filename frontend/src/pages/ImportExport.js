@@ -28,6 +28,7 @@ const ImportExport = () => {
     const [fetchError, setFetchError] = useState(null);
 
     const deviceUid = localStorage.getItem('device_uid');
+    const { getDeviceUidHeader } = useAuth();
 
 
     useEffect(() => {
@@ -42,11 +43,11 @@ const ImportExport = () => {
         setExportLoading(true);
         try {
             const API_BASE_URL = process.env.REACT_APP_API_URL || 'https://vaultify-a88w.onrender.com';
-            const deviceUid = localStorage.getItem('device_uid');
             const headers = {
+                ...getDeviceUidHeader(),
                 'Authorization': `Bearer ${localStorage.getItem('token')}`
             };
-            if (deviceUid) headers['x-device-uid'] = deviceUid;
+            console.log('[Device] Sending x-device-uid header:', headers['x-device-uid']);
             const response = await fetch(`${API_BASE_URL}/api/import-export/export/${format}`, {
                 headers
             });
@@ -94,11 +95,11 @@ const ImportExport = () => {
             formData.append('file', selectedFile);
 
             const API_BASE_URL = process.env.REACT_APP_API_URL || 'https://vaultify-a88w.onrender.com';
-            const deviceUid = localStorage.getItem('device_uid');
             const headers = {
+                ...getDeviceUidHeader(),
                 'Authorization': `Bearer ${localStorage.getItem('token')}`
             };
-            if (deviceUid) headers['x-device-uid'] = deviceUid;
+            console.log('[Device] Sending x-device-uid header:', headers['x-device-uid']);
             const response = await fetch(`${API_BASE_URL}/api/import-export/import/${importFormat}`, {
                 method: 'POST',
                 headers,

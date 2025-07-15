@@ -89,21 +89,26 @@ export const AuthProvider = ({ children }) => {
         }
     };
 
-    // Helper to set device_uid securely
+    // Helper to set device_uid securely and log
     const setDeviceUid = (deviceUid) => {
         if (deviceUid) {
             localStorage.setItem(DEVICE_UID_KEY, deviceUid);
             axios.defaults.headers.common['x-device-uid'] = deviceUid;
-            // Set as secure, sameSite cookie (best effort, JS can't set httpOnly)
             document.cookie = `device_uid=${deviceUid}; path=/; SameSite=Strict; Secure`;
+            console.log('[Device] device_uid set:', deviceUid);
         }
     };
-    // Helper to clear device_uid
+    // Helper to clear device_uid everywhere and log
     const clearDeviceUid = () => {
         localStorage.removeItem(DEVICE_UID_KEY);
         delete axios.defaults.headers.common['x-device-uid'];
-        // Remove cookie
         document.cookie = 'device_uid=; Max-Age=0; path=/; SameSite=Strict; Secure';
+        console.log('[Device] device_uid cleared');
+    };
+    // Helper to get device_uid for API requests
+    const getDeviceUidHeader = () => {
+        const deviceUid = localStorage.getItem(DEVICE_UID_KEY);
+        return deviceUid ? { 'x-device-uid': deviceUid } : {};
     };
 
     // Login user
@@ -123,9 +128,12 @@ export const AuthProvider = ({ children }) => {
             axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
             setUser(user);
 
+            // Debug: log all response headers
+            console.log('[Device] Login response headers:', response.headers);
+
             // Store device_uid from response header (if present)
-            let newDeviceUid = response.headers['x-device-uid'] || response.headers['X-Device-Uid'] || response.headers['X-DEVICE-UID'];
-            if (!newDeviceUid && response.headers) {
+            let newDeviceUid = null;
+            if (response.headers) {
                 for (const key of Object.keys(response.headers)) {
                     if (key.toLowerCase() === 'x-device-uid') {
                         newDeviceUid = response.headers[key];
@@ -139,11 +147,10 @@ export const AuthProvider = ({ children }) => {
                 if (match) newDeviceUid = match[1];
             }
             if (!newDeviceUid) {
-                console.warn('No device_uid found in login response headers!');
+                console.warn('[Device] No device_uid found in login response headers!');
             } else {
-                console.log('device_uid received from backend:', newDeviceUid);
+                setDeviceUid(newDeviceUid);
             }
-            setDeviceUid(newDeviceUid);
 
             showMessage('Login successful!', 'success');
             return { success: true };
@@ -151,10 +158,14 @@ export const AuthProvider = ({ children }) => {
             // Device approval required
             if (error.response?.status === 403 && error.response?.data?.requiresApproval) {
                 const message = error.response.data.error || 'Login successful, but this device is pending approval. Please approve it from another device.';
-                showMessage(message, 'info'); // Show as info, not error
-                // Store device_uid from response header if present (for later use after approval)
-                let pendingDeviceUid = error.response.headers && (error.response.headers['x-device-uid'] || error.response.headers['X-Device-Uid'] || error.response.headers['X-DEVICE-UID']);
-                if (!pendingDeviceUid && error.response.headers) {
+                showMessage(message, 'info');
+                // Debug: log all response headers
+                if (error.response.headers) {
+                    console.log('[Device] Approval response headers:', error.response.headers);
+                }
+                // Store device_uid from response header if present
+                let pendingDeviceUid = null;
+                if (error.response.headers) {
                     for (const key of Object.keys(error.response.headers)) {
                         if (key.toLowerCase() === 'x-device-uid') {
                             pendingDeviceUid = error.response.headers[key];
@@ -168,11 +179,10 @@ export const AuthProvider = ({ children }) => {
                     if (match) pendingDeviceUid = match[1];
                 }
                 if (!pendingDeviceUid) {
-                    console.warn('No device_uid found in approval response headers!');
+                    console.warn('[Device] No device_uid found in approval response headers!');
                 } else {
-                    console.log('device_uid received from backend (approval):', pendingDeviceUid);
+                    setDeviceUid(pendingDeviceUid);
                 }
-                setDeviceUid(pendingDeviceUid);
                 return {
                     success: false,
                     requiresApproval: true,
@@ -183,7 +193,6 @@ export const AuthProvider = ({ children }) => {
             if (error.response?.status === 403 && error.response?.data?.deviceRejected) {
                 const message = error.response.data.error;
                 showMessage(message, 'error');
-                // Clear device_uid if rejected
                 clearDeviceUid();
                 return {
                     success: false,
@@ -198,18 +207,10 @@ export const AuthProvider = ({ children }) => {
     };
 
     // Logout user
-    const logout = async () => {
-        try {
-            await axios.post('/api/auth/logout');
-        } catch (error) {
-            console.error('Logout error:', error);
-        } finally {
-            localStorage.removeItem('token');
-            clearDeviceUid();
-            delete axios.defaults.headers.common['Authorization'];
-            setUser(null);
-            showMessage('Logged out successfully', 'success');
-        }
+    const logout = () => {
+        localStorage.removeItem('token');
+        delete axios.defaults.headers.common['Authorization'];
+        setUser(null);
     };
 
     // Forgot password
@@ -320,7 +321,8 @@ export const AuthProvider = ({ children }) => {
         deleteAccount,
         checkPendingDevices,
         approveDevice,
-        rejectDevice
+        rejectDevice,
+        getDeviceUidHeader // <-- export for use in all API pages
     };
 
     return (
